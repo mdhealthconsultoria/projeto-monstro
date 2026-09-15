@@ -73,14 +73,15 @@ function renderNav(activeId) {
   items.forEach(i => navEl.appendChild(i));
 }
 
+if ('serviceWorker' in navigator) {
+  // Register immediately: waiting for the 'load' event is unreliable here, since the app's
+  // own async boot (IndexedDB open) can outlast page load, causing the listener to attach
+  // after 'load' already fired and silently never registering the worker.
+  navigator.serviceWorker.register('./sw.js').catch(err => console.error('SW falhou', err));
+}
+
 async function boot() {
   await store.init();
-
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js').catch(err => console.error('SW falhou', err));
-    });
-  }
 
   // Resume an in-progress workout session if the app was closed mid-training.
   if (store.state.activeSession && store.state.activeSession.day) {
