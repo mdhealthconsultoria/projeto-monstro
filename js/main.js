@@ -1,26 +1,45 @@
 import { store } from './store.js';
 import { h } from './utils.js';
 import { icon } from './icons.js';
+import * as auth from './services/auth.js';
 
 import { renderHoje } from './views/hoje.js';
-import { renderJornada } from './views/jornada.js';
-import { renderEvolucao } from './views/evolucao.js';
-import { renderFotos } from './views/fotos.js';
+import { renderEvoluir } from './views/evoluir.js';
+import { renderComunidades } from './views/comunidades.js';
+import { renderProgresso } from './views/progresso.js';
 import { renderPerfil } from './views/perfil.js';
 import { renderTreino } from './views/treino.js';
 import { renderResultado } from './views/resultado.js';
+import { renderLogin, renderSignup } from './views/auth.js';
+import { renderOnboarding } from './views/onboarding.js';
+import { renderJornada } from './views/jornada.js';
+import { renderMinhaBase } from './views/minhaBase.js';
+import { renderChecklist } from './views/checklist.js';
 
 const TABS = [
   { id: 'hoje', label: 'Hoje', icon: 'today', render: renderHoje },
-  { id: 'jornada', label: 'Jornada', icon: 'journey', render: renderJornada },
-  { id: 'evolucao', label: 'Evolução', icon: 'evolution', render: renderEvolucao },
-  { id: 'fotos', label: 'Fotos', icon: 'photos', render: renderFotos },
+  { id: 'evoluir', label: 'Evoluir', icon: 'bolt', render: renderEvoluir },
+  { id: 'comunidades', label: 'Comunidades', icon: 'users', render: renderComunidades },
+  { id: 'progresso', label: 'Progresso', icon: 'evolution', render: renderProgresso },
   { id: 'perfil', label: 'Perfil', icon: 'profile', render: renderPerfil },
 ];
 
+// Screens with no bottom nav: workout focus, results, and everything before
+// the user is inside the authenticated app shell.
 const FOCUS_SCREENS = {
   treino: renderTreino,
   resultado: renderResultado,
+  login: renderLogin,
+  signup: renderSignup,
+  onboarding: renderOnboarding,
+};
+
+// Screens reached one level deeper than a tab (e.g. from "Evoluir"), but
+// that still keep the bottom nav visible — they just aren't a tab themselves.
+const SUB_SCREENS = {
+  jornada: { render: renderJornada, activeTab: 'evoluir' },
+  minhaBase: { render: renderMinhaBase, activeTab: 'evoluir' },
+  checklist: { render: renderChecklist, activeTab: 'evoluir' },
 };
 
 const viewEl = document.getElementById('view');
@@ -28,21 +47,27 @@ const navEl = document.getElementById('bottom-nav');
 const appRoot = document.getElementById('app-root');
 
 let cleanupFn = null;
-let currentScreenId = 'hoje';
 
 const nav = {
   navigateTo(screenId, params = {}) {
+    if (screenId === 'boot') { routeFromAuthState(); return; }
+
     if (cleanupFn) { try { cleanupFn(); } catch { /* ignore */ } cleanupFn = null; }
-    currentScreenId = screenId;
 
     const tab = TABS.find(t => t.id === screenId);
     const focus = FOCUS_SCREENS[screenId];
+    const sub = SUB_SCREENS[screenId];
 
     if (tab) {
       appRoot.classList.remove('view-focus');
       navEl.style.display = '';
       renderNav(screenId);
       cleanupFn = tab.render(viewEl, params, nav) || null;
+    } else if (sub) {
+      appRoot.classList.remove('view-focus');
+      navEl.style.display = '';
+      renderNav(sub.activeTab);
+      cleanupFn = sub.render(viewEl, params, nav) || null;
     } else if (focus) {
       appRoot.classList.add('view-focus');
       navEl.style.display = 'none';
@@ -73,17 +98,24 @@ function renderNav(activeId) {
   items.forEach(i => navEl.appendChild(i));
 }
 
-if ('serviceWorker' in navigator) {
-  // Register immediately: waiting for the 'load' event is unreliable here, since the app's
-  // own async boot (IndexedDB open) can outlast page load, causing the listener to attach
-  // after 'load' already fired and silently never registering the worker.
-  navigator.serviceWorker.register('./sw.js').catch(err => console.error('SW falhou', err));
-}
+// Central routing decision: not logged in -> auth; logged in but onboarding
+// incomplete -> onboarding; otherwise -> the app shell (resuming an
+// in-progress workout session if one was left open).
+async function routeFromAuthState() {
+  const session = await auth.getSession();
+  if (!session) {
+    store.clearActive();
+    nav.navigateTo('login');
+    return;
+  }
 
-async function boot() {
-  await store.init();
+  await store.loadForUser(session.user.id);
 
-  // Resume an in-progress workout session if the app was closed mid-training.
+  if (!session.user.onboardingComplete) {
+    nav.navigateTo('onboarding');
+    return;
+  }
+
   if (store.state.activeSession && store.state.activeSession.day) {
     nav.navigateTo('treino', { day: store.state.activeSession.day, resume: true });
   } else {
@@ -91,4 +123,11 @@ async function boot() {
   }
 }
 
-boot();
+if ('serviceWorker' in navigator) {
+  // Register immediately: waiting for the 'load' event is unreliable here, since the app's
+  // own async boot (IndexedDB open) can outlast page load, causing the listener to attach
+  // after 'load' already fired and silently never registering the worker.
+  navigator.serviceWorker.register('./sw.js').catch(err => console.error('SW falhou', err));
+}
+
+routeFromAuthState();

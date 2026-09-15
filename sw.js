@@ -1,4 +1,4 @@
-const CACHE_NAME = 'monstro-cache-v1';
+const CACHE_NAME = 'skeelo-cache-v2';
 const PRECACHE_URLS = [
   './',
   './index.html',
@@ -13,6 +13,12 @@ const PRECACHE_URLS = [
   './js/charts.js',
   './js/utils.js',
   './js/icons.js',
+  './js/ui.js',
+  './js/habits.js',
+  './js/inspirations.js',
+  './js/services/auth.js',
+  './js/services/auth.local.js',
+  './js/services/crypto.js',
   './js/views/hoje.js',
   './js/views/jornada.js',
   './js/views/evolucao.js',
@@ -23,6 +29,13 @@ const PRECACHE_URLS = [
   './js/views/resultado.js',
   './js/views/dayDetail.js',
   './js/views/tests.js',
+  './js/views/auth.js',
+  './js/views/onboarding.js',
+  './js/views/evoluir.js',
+  './js/views/comunidades.js',
+  './js/views/progresso.js',
+  './js/views/minhaBase.js',
+  './js/views/checklist.js',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/apple-touch-icon.png',

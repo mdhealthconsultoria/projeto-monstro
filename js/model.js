@@ -64,11 +64,17 @@ export function isDayStarted(dayRec) {
 
 export function defaultState() {
   return {
-    version: 1,
+    version: 2,
     startDate: null,
     days: {},
     tests: { day1: null, day30: null },
     activeSession: null,
+    habits: {},
+    habitCheckins: {},
+    dailyTasks: [],
+    dailyTaskCompletions: {},
+    bodyMetrics: { heightCm: null, weights: [] },
+    bodyDiaryConsent: false,
   };
 }
 
@@ -96,19 +102,3 @@ export function levelForXP(xp) {
   };
 }
 
-export const MOTIVATIONAL_PHRASES = [
-  'Consistência vence intensidade.',
-  'Mais um dia. Mais um degrau.',
-  'A disciplina não pergunta como você se sente.',
-  'Você não precisa de motivação, precisa de rotina.',
-  'O monstro é construído dia após dia.',
-  'Hoje é só sobre aparecer.',
-  'Pequeno progresso ainda é progresso.',
-  'Ninguém disfarça consistência.',
-  'Faça o que a versão de ontem não fez.',
-  'Sem desculpas. Só séries.',
-];
-
-export function phraseForDay(day) {
-  return MOTIVATIONAL_PHRASES[(day - 1) % MOTIVATIONAL_PHRASES.length];
-}

@@ -88,42 +88,29 @@ function drawIcon(size, { transparentBg = true, padding = 0.16 } = {}) {
     }
   }
 
-  // barbell glyph: horizontal bar + two plates each side, in orange
-  const barH = Math.max(2, Math.round(size * 0.07));
-  const barY0 = Math.round(cy - barH / 2);
-  const barX0 = Math.round(size * padding * 1.6);
-  const barX1 = Math.round(size * (1 - padding * 1.6));
-  for (let y = barY0; y < barY0 + barH; y++) {
-    for (let x = barX0; x < barX1; x++) {
-      setPixel(x, y, orange, 255);
-    }
-  }
-  // plates
-  const plateW = Math.round(size * 0.09);
-  const plateH = Math.round(size * 0.34);
-  const plateY0 = Math.round(cy - plateH / 2);
-  function plate(xStart) {
-    for (let y = plateY0; y < plateY0 + plateH; y++) {
-      for (let x = xStart; x < xStart + plateW; x++) {
-        if (x >= 0 && x < size && y >= 0 && y < size) setPixel(x, y, orangeDark, 255);
+  // Skeelo Evolution mark: a three-level stepped pyramid (Corpo / Mente /
+  // Comunidade), apex up, with thin dark gaps separating the bands.
+  const apexY = size * (padding * 0.9);
+  const baseY = size * (1 - padding * 0.9);
+  const halfWidthAt = f => (size * (0.5 - padding * 0.9)) * f;
+  const gapPx = Math.max(1, Math.round(size * 0.018));
+  const bandColors = [orange, orange, orangeDark]; // top, mid, base
+
+  for (let bandIdx = 0; bandIdx < 3; bandIdx++) {
+    const f0 = bandIdx / 3;
+    const f1 = (bandIdx + 1) / 3;
+    const y0 = Math.round(apexY + (baseY - apexY) * f0) + (bandIdx > 0 ? gapPx : 0);
+    const y1 = Math.round(apexY + (baseY - apexY) * f1) - (bandIdx < 2 ? gapPx : 0);
+    for (let y = y0; y <= y1; y++) {
+      const f = (y - apexY) / (baseY - apexY);
+      const hw = halfWidthAt(f);
+      const xLeft = Math.round(cx - hw);
+      const xRight = Math.round(cx + hw);
+      for (let x = xLeft; x <= xRight; x++) {
+        if (x >= 0 && x < size && y >= 0 && y < size) setPixel(x, y, bandColors[bandIdx], 255);
       }
     }
   }
-  plate(barX0 - plateW - Math.round(size * 0.01));
-  plate(barX1 + Math.round(size * 0.01));
-  // outer smaller plates
-  const plate2W = Math.round(size * 0.06);
-  const plate2H = Math.round(size * 0.22);
-  const plate2Y0 = Math.round(cy - plate2H / 2);
-  function plate2(xStart) {
-    for (let y = plate2Y0; y < plate2Y0 + plate2H; y++) {
-      for (let x = xStart; x < xStart + plate2W; x++) {
-        if (x >= 0 && x < size && y >= 0 && y < size) setPixel(x, y, orange, 255);
-      }
-    }
-  }
-  plate2(barX0 - plateW - Math.round(size * 0.02) - plate2W - Math.round(size * 0.015));
-  plate2(barX1 + Math.round(size * 0.02) + Math.round(size * 0.015));
 
   return px;
 }

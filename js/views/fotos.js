@@ -1,7 +1,8 @@
 import { h, mount, uid, todayISO } from '../utils.js';
 import { icon } from '../icons.js';
-import { addPhoto, getAllPhotos, deletePhoto } from '../db.js';
+import { addPhoto, getPhotosForUser, deletePhoto } from '../db.js';
 import { confirmDialog, toast } from '../ui.js';
+import { store } from '../store.js';
 
 const PHOTO_DAYS = [1, 10, 20, 30];
 const CATEGORIES = [
@@ -26,7 +27,7 @@ export function renderFotos(viewEl, params, nav) {
   }
 
   async function loadAndDraw() {
-    photos = await getAllPhotos();
+    photos = await getPhotosForUser(store.userId);
     draw();
   }
 
@@ -56,7 +57,7 @@ export function renderFotos(viewEl, params, nav) {
         if (!file) return;
         const existing = photoFor(day, category);
         if (existing) await deletePhoto(existing.id);
-        await addPhoto({ id: uid(), day, category, blob: file, createdAt: todayISO() });
+        await addPhoto({ id: uid(), userId: store.userId, day, category, blob: file, createdAt: todayISO() });
         toast('Foto salva', { iconName: 'check' });
         loadAndDraw();
       },

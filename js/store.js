@@ -1,4 +1,4 @@
-import { loadState, saveState, clearAllData } from './db.js';
+import { loadState, saveState, clearStateForUser } from './db.js';
 import { defaultState, emptyDay, typeForDay, levelForXP } from './model.js';
 import { computeAll, computeStreaks, currentDayNumber } from './logic.js';
 import { todayISO } from './utils.js';
@@ -6,22 +6,31 @@ import { todayISO } from './utils.js';
 class Store {
   constructor() {
     this.state = null;
+    this.userId = null;
     this.listeners = new Set();
     this.saveTimer = null;
   }
 
-  async init() {
-    let state = await loadState();
+  async loadForUser(userId) {
+    this.userId = userId;
+    let state = await loadState(userId);
     if (!state) {
       state = defaultState();
-      state.startDate = todayISO();
-      await saveState(state);
+      await saveState(userId, state);
     }
-    // migration safety: ensure shape
-    if (!state.tests) state.tests = { day1: null, day30: null };
-    if (!state.days) state.days = {};
+    // migration safety: ensure shape for installs created before a field existed
+    const fresh = defaultState();
+    for (const key of Object.keys(fresh)) {
+      if (state[key] === undefined) state[key] = fresh[key];
+    }
     this.state = state;
     this.recompute();
+  }
+
+  clearActive() {
+    this.userId = null;
+    this.state = null;
+    this.derived = null;
   }
 
   recompute() {
@@ -44,9 +53,10 @@ class Store {
 
   persist() {
     clearTimeout(this.saveTimer);
+    const userId = this.userId;
     // Save immediately (debounced only to coalesce rapid successive calls in the same tick).
     this.saveTimer = setTimeout(() => {
-      saveState(this.state).catch(err => console.error('Falha ao salvar dados', err));
+      saveState(userId, this.state).catch(err => console.error('Falha ao salvar dados', err));
     }, 0);
   }
 
@@ -56,6 +66,11 @@ class Store {
     this.recompute();
     this.persist();
     this.notify();
+  }
+
+  // Begin the 30-day challenge today (called from onboarding or a deferred start).
+  startChallengeToday() {
+    this.mutate(s => { if (!s.startDate) s.startDate = todayISO(); });
   }
 
   getDay(day) {
@@ -70,10 +85,9 @@ class Store {
   }
 
   async resetAll() {
-    await clearAllData();
+    await clearStateForUser(this.userId);
     this.state = defaultState();
-    this.state.startDate = todayISO();
-    await saveState(this.state);
+    await saveState(this.userId, this.state);
     this.recompute();
     this.notify();
   }

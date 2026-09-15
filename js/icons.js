@@ -1,6 +1,12 @@
 // Consistent stroke-based SVG icon set (24x24, no emoji used anywhere in the UI).
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
+function svgEl(tag, attrs) {
+  const el = document.createElementNS(SVG_NS, tag);
+  for (const [k, v] of Object.entries(attrs || {})) el.setAttribute(k, v);
+  return el;
+}
+
 const PATHS = {
   today: '<path d="M6.5 3v3M17.5 3v3M4 9h16M5 6h14a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1Z"/><path d="M9 13.5l2 2 4-4.5"/>',
   journey: '<path d="M4 6h16M4 12h16M4 18h16" /><circle cx="8" cy="6" r="1.4" fill="currentColor" stroke="none"/><circle cx="14" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="10" cy="18" r="1.4" fill="currentColor" stroke="none"/>',
@@ -27,7 +33,64 @@ const PATHS = {
   target: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/>',
   info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 8h.01"/>',
   share: '<circle cx="18" cy="5" r="2.2"/><circle cx="6" cy="12" r="2.2"/><circle cx="18" cy="19" r="2.2"/><path d="M8 10.8l8-4.4M8 13.2l8 4.4"/>',
+  book: '<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5v-15Z"/><path d="M20 18H6.5A2.5 2.5 0 0 0 4 20.5"/>',
+  droplet: '<path d="M12 3s6 7 6 11.5a6 6 0 0 1-12 0C6 10 12 3 12 3Z"/>',
+  briefcase: '<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5.5A1.5 1.5 0 0 1 9.5 4h5A1.5 1.5 0 0 1 16 5.5V7"/><path d="M3 12h18"/>',
+  heart: '<path d="M12 20s-7-4.35-9.5-8.8C.8 7.8 2.6 4.5 6 4.5c2 0 3.4 1.1 6 3.6 2.6-2.5 4-3.6 6-3.6 3.4 0 5.2 3.3 3.5 6.7C19 15.65 12 20 12 20Z"/>',
+  pyramid: '<path d="M12 3.5 21.5 20H2.5L12 3.5Z"/><path d="M6.2 14.5h11.6M8.7 10.2h6.6"/>',
+  users: '<circle cx="9" cy="8" r="3"/><path d="M3.5 19c.7-3.3 3-5 5.5-5s4.8 1.7 5.5 5"/><circle cx="17" cy="9" r="2.4"/><path d="M15.3 14.2c2 .2 3.7 1.8 4.2 4.3"/>',
+  lock: '<rect x="5" y="10.5" width="14" height="9.5" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/>',
+  send: '<path d="M4 12 20 4l-6 16-3-7-7-1Z"/>',
+  clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/>',
+  logout: '<path d="M9 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h3"/><path d="M14 16l4-4-4-4"/><path d="M18 12H9"/>',
+  download: '<path d="M12 3v13"/><path d="M7 11l5 5 5-5"/><path d="M5 20h14"/>',
 };
+
+// The Skeelo Evolution brand mark: a three-level stepped pyramid — Corpo
+// (base), Mente (middle), Comunidade (apex). `levels` lights up each band
+// independently (e.g. to show which pillar has progress today).
+export function pyramidMark({ size = 64, levels = [true, true, true], className = '' } = {}) {
+  const svg = document.createElementNS(SVG_NS, 'svg');
+  svg.setAttribute('viewBox', '0 0 100 100');
+  svg.setAttribute('width', size);
+  svg.setAttribute('height', size);
+  if (className) svg.setAttribute('class', className);
+
+  const apexY = 8, baseY = 90, gap = 3.2;
+  const halfWidthAt = f => 42 * f;
+  const yAt = f => apexY + (baseY - apexY) * f;
+
+  function bandPoints(fStart, fEnd) {
+    const y0 = yAt(fStart) + (fStart > 0 ? gap / 2 : 0);
+    const y1 = yAt(fEnd) - (fEnd < 1 ? gap / 2 : 0);
+    const f0 = (y0 - apexY) / (baseY - apexY);
+    const f1 = (y1 - apexY) / (baseY - apexY);
+    if (fStart === 0) {
+      return `50,${apexY} ${50 + halfWidthAt(f1)},${y1} ${50 - halfWidthAt(f1)},${y1}`;
+    }
+    return `${50 - halfWidthAt(f0)},${y0} ${50 + halfWidthAt(f0)},${y0} ${50 + halfWidthAt(f1)},${y1} ${50 - halfWidthAt(f1)},${y1}`;
+  }
+
+  // [comunidade(apex), mente(mid), corpo(base)] — drawn top to bottom.
+  const bands = [
+    { points: bandPoints(0, 1 / 3), filled: levels[2] },
+    { points: bandPoints(1 / 3, 2 / 3), filled: levels[1] },
+    { points: bandPoints(2 / 3, 1), filled: levels[0] },
+  ];
+
+  bands.forEach(b => {
+    svg.appendChild(svgEl('polygon', {
+      points: b.points,
+      fill: b.filled ? 'currentColor' : 'none',
+      stroke: 'currentColor',
+      'stroke-width': '3',
+      'stroke-linejoin': 'round',
+      opacity: b.filled ? '1' : '0.45',
+    }));
+  });
+
+  return svg;
+}
 
 export function icon(name, { size = 24, className = '' } = {}) {
   const svg = document.createElementNS(SVG_NS, 'svg');

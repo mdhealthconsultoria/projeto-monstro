@@ -130,14 +130,18 @@ export function computeStreaks(state, currentDay) {
     if (completed(d)) { streak++; longest = Math.max(longest, streak); }
     else streak = 0;
   }
+  if (!currentDay) return { current: 0, best: longest };
   let cur = 0;
   let d = completed(currentDay) ? currentDay : currentDay - 1;
   while (d >= 1 && completed(d)) { cur++; d--; }
   return { current: cur, best: longest };
 }
 
+// null means the 30-day challenge hasn't been started yet (startDate unset —
+// the user deferred it during onboarding). Callers must handle that state
+// explicitly rather than assuming day 1.
 export function currentDayNumber(state, now = new Date()) {
-  if (!state.startDate) return 1;
+  if (!state.startDate) return null;
   const start = new Date(state.startDate);
   const startMidnight = new Date(start.getFullYear(), start.getMonth(), start.getDate());
   const nowMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());

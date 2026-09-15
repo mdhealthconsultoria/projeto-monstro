@@ -10,6 +10,21 @@ export function renderJornada(viewEl, params, nav) {
     const state = store.state;
     const { currentDay, computed } = store.derived;
 
+    const backHeader = h('div', { className: 'row-between' },
+      h('button', { className: 'icon-btn', 'aria-label': 'Voltar', onClick: () => nav.navigateTo('evoluir') }, icon('chevronLeft', { size: 20 })),
+      h('h1', {}, 'Treino de 30 dias'),
+      h('span', { style: { width: '44px' } })
+    );
+
+    if (!currentDay) {
+      mount(viewEl, h('div', { className: 'stack fade-up' },
+        backHeader,
+        h('div', { className: 'empty-state' }, icon('today', { size: 32 }), h('div', {}, 'Você ainda não iniciou o desafio. Volte para Hoje para começar.'),
+          h('button', { className: 'btn btn-primary', style: { marginTop: '12px' }, onClick: () => nav.navigateTo('hoje') }, 'Ir para Hoje'))
+      ));
+      return;
+    }
+
     const cells = [];
     for (let day = 1; day <= TOTAL_DAYS; day++) {
       const dayRec = state.days[day];
@@ -45,7 +60,7 @@ export function renderJornada(viewEl, params, nav) {
     );
 
     mount(viewEl, h('div', { className: 'stack fade-up' },
-      h('h1', {}, 'Jornada'),
+      backHeader,
       h('p', { className: 'text-dim' }, `${computed.workoutsCompleted} de ${TOTAL_DAYS} treinos concluídos.`),
       h('div', { className: 'card' }, h('div', { className: 'days-grid' }, cells)),
       legend

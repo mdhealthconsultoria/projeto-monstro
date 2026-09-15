@@ -30,6 +30,7 @@ export function openCheckinModal(day, { onSaved, onSkip } = {}) {
     sleep: existing ? existing.sleep : 3,
     soreness: existing ? existing.soreness : 0,
     note: existing ? existing.note : '',
+    bodyDiary: existing && existing.bodyDiary ? { ...existing.bodyDiary } : { strength: 3, fatigue: 0, mood: 3 },
   };
 
   const noteInput = h('textarea', {
@@ -38,6 +39,35 @@ export function openCheckinModal(day, { onSaved, onSkip } = {}) {
     onInput: e => { data.note = e.target.value; },
   });
 
+  let diaryConsent = store.state.bodyDiaryConsent;
+  const diarySection = h('div', {});
+  function drawDiarySection() {
+    diarySection.innerHTML = '';
+    if (!diaryConsent) {
+      diarySection.appendChild(h('div', { className: 'card card-tight stack' },
+        h('div', { className: 'section-title' }, 'DIÁRIO DE PERCEPÇÃO CORPORAL'),
+        h('p', { className: 'text-faint', style: { fontSize: '12px' } },
+          'Um diário pessoal para acompanhar como seu corpo reage aos treinos — não é um diagnóstico médico e nunca é compartilhado com ninguém.'),
+        h('button', {
+          className: 'btn btn-outline btn-sm',
+          onClick: () => {
+            diaryConsent = true;
+            store.mutate(s => { s.bodyDiaryConsent = true; });
+            drawDiarySection();
+          },
+        }, 'Ativar diário de percepção corporal')
+      ));
+      return;
+    }
+    diarySection.appendChild(h('div', { className: 'card card-tight stack' },
+      h('div', { className: 'section-title' }, 'DIÁRIO DE PERCEPÇÃO CORPORAL (opcional)'),
+      scaleField('Sensação de força', 1, 5, data.bodyDiary.strength, v => data.bodyDiary.strength = v),
+      scaleField('Fadiga', 0, 5, data.bodyDiary.fatigue, v => data.bodyDiary.fatigue = v),
+      scaleField('Humor', 1, 5, data.bodyDiary.mood, v => data.bodyDiary.mood = v)
+    ));
+  }
+  drawDiarySection();
+
   const content = h('div', { className: 'stack' },
     h('p', { className: 'text-dim' }, 'Como você está hoje? (opcional)'),
     scaleField('Energia', 1, 5, data.energy, v => data.energy = v),
@@ -45,6 +75,7 @@ export function openCheckinModal(day, { onSaved, onSkip } = {}) {
     scaleField('Qualidade do sono', 1, 5, data.sleep, v => data.sleep = v),
     scaleField('Dor muscular', 0, 5, data.soreness, v => data.soreness = v),
     h('div', { className: 'field' }, h('label', {}, 'Observação livre'), noteInput),
+    diarySection,
     h('div', { className: 'row', style: { marginTop: '4px' } },
       h('button', {
         className: 'btn btn-ghost grow', onClick: () => { close(); if (onSkip) onSkip(); },
@@ -54,7 +85,7 @@ export function openCheckinModal(day, { onSaved, onSkip } = {}) {
         onClick: () => {
           store.mutate(s => {
             if (!s.days[day]) return;
-            s.days[day].checkin = { ...data };
+            s.days[day].checkin = { ...data, bodyDiary: diaryConsent ? data.bodyDiary : null };
           });
           toast('Check-in salvo', { iconName: 'check' });
           close();

@@ -1,10 +1,12 @@
 import { h, mount } from '../utils.js';
-import { icon } from '../icons.js';
+import { icon, pyramidMark } from '../icons.js';
 import { store } from '../store.js';
-import { TOTAL_DAYS, WORKOUT_TYPES, typeForDay, phraseForDay, isDayCompleted } from '../model.js';
+import { TOTAL_DAYS, WORKOUT_TYPES, typeForDay, isDayCompleted } from '../model.js';
 import { aggregateDay, previousSimilarDay, compareAggregates, formatSignedNumber, formatSignedPercent } from '../logic.js';
 import { openDayDetail } from './dayDetail.js';
 import { openTestModal } from './tests.js';
+import { pickInspiration } from '../inspirations.js';
+import * as auth from '../services/auth.js';
 
 const PRIMARY_RECORD_BY_TYPE = {
   A: { id: 'pushupSet', label: 'Flexões (série)', unit: 'reps' },
@@ -13,9 +15,47 @@ const PRIMARY_RECORD_BY_TYPE = {
 };
 
 export function renderHoje(viewEl, params, nav) {
+  let user = null;
+
   function draw() {
     const state = store.state;
     const { currentDay, computed, streaks, level } = store.derived;
+
+    const header = h('div', { className: 'app-header stack' },
+      h('div', { className: 'row' },
+        pyramidMark({ size: 40, levels: [computed.workoutsCompleted > 0, Object.keys(state.habits).length > 0, false] }),
+        h('div', {},
+          h('h1', { className: 'brand-title' }, 'SKEELO ', h('span', { className: 'accent' }, 'EVOLUTION')),
+          h('p', { className: 'brand-sub' }, 'Construa sua base. Evolua todos os dias.')
+        )
+      ),
+      user ? h('p', { className: 'text-dim', style: { fontSize: '14px' } }, `Olá, ${user.nickname || user.name}.`) : null
+    );
+
+    const inspiration = user ? pickInspiration({ preference: (user.preferences && user.preferences.inspiration) || 'both', timeZone: user.timezone }) : null;
+    const inspirationCard = inspiration ? h('div', { className: 'card card-tight' },
+      h('p', { className: 'phrase' }, inspiration.text),
+      inspiration.reference ? h('p', { className: 'text-faint', style: { fontSize: '12px', marginTop: '4px' } }, inspiration.reference) : null
+    ) : null;
+
+    if (!currentDay) {
+      mount(viewEl, h('div', { className: 'stack fade-up' },
+        header,
+        inspirationCard,
+        h('div', { className: 'card stack' },
+          h('div', { className: 'row' }, pyramidMark({ size: 28, levels: [false, false, false] }), h('h3', {}, 'Pronto para começar?')),
+          h('p', { className: 'text-dim' }, 'Você ainda não iniciou o desafio de 30 dias. Quando começar, o Dia 1 passa a contar a partir de hoje.'),
+          h('button', { className: 'btn btn-primary btn-huge btn-block', onClick: () => store.startChallengeToday() }, icon('play', { size: 20 }), 'INICIAR DESAFIO DE 30 DIAS')
+        ),
+        h('div', { className: 'card stack' },
+          h('div', { className: 'section-title' }, 'ENQUANTO ISSO' ),
+          h('button', { className: 'btn btn-outline btn-block', onClick: () => nav.navigateTo('minhaBase') }, icon('pyramid', { size: 18 }), 'Ver Minha Base'),
+          h('button', { className: 'btn btn-outline btn-block', onClick: () => nav.navigateTo('checklist') }, icon('checkCircle', { size: 18 }), 'Checklist diário')
+        )
+      ));
+      return;
+    }
+
     const dayRec = state.days[currentDay];
     const completed = isDayCompleted(dayRec);
     const type = typeForDay(currentDay);
@@ -36,24 +76,18 @@ export function renderHoje(viewEl, params, nav) {
     const needsDay30Test = currentDay >= TOTAL_DAYS && !state.tests.day30 && computed.workoutsCompleted >= 1;
     const canShowResult = !!state.tests.day1 && !!state.tests.day30;
 
-    const header = h('div', { className: 'app-header stack' },
-      h('div', {},
-        h('h1', { className: 'brand-title' }, '30 DAYS — ', h('span', { className: 'accent' }, 'PROJETO MONSTRO')),
-        h('p', { className: 'brand-sub' }, '30 dias. 2 exercícios. Sem desculpas.')
-      )
-    );
-
     const heroCard = h('div', { className: 'card stack' },
       h('div', { className: 'row-between' },
         h('div', { className: 'hero-day' }, h('span', { className: 'num' }, String(currentDay).padStart(2, '0')), h('span', { className: 'of30' }, `/ ${TOTAL_DAYS}`)),
         h('div', { className: 'level-badge' }, `LVL ${level.level} · ${level.name}`)
       ),
-      h('div', { className: 'progress-track' }, h('div', { className: 'progress-fill', style: { width: pct + '%' } })),
+      h('div', { className: 'progress-track step-track' }, h('div', { className: 'progress-fill', style: { width: pct + '%' } })),
       h('div', { className: 'stat-grid' },
         h('div', { className: 'stat-box' }, h('div', { className: 'val row', style: { justifyContent: 'center' } }, icon('flame', { size: 18 }), streaks.current), h('div', { className: 'lbl' }, 'Sequência')),
         h('div', { className: 'stat-box' }, h('div', { className: 'val' }, streaks.best), h('div', { className: 'lbl' }, 'Maior sequência')),
         h('div', { className: 'stat-box' }, h('div', { className: 'val' }, `${computed.workoutsCompleted}/${TOTAL_DAYS}`), h('div', { className: 'lbl' }, 'Concluídos'))
       ),
+      streaks.current > 0 && !completed ? h('p', { className: 'streak-risk' }, icon('flame', { size: 14 }), ` Você já construiu ${streaks.current} dia${streaks.current === 1 ? '' : 's'}. Complete sua base de hoje.`) : null,
       h('div', { className: 'xp-row' },
         h('div', { className: 'grow progress-track' }, h('div', { className: 'progress-fill green', style: { width: `${Math.round(level.progress * 100)}%` } })),
         h('span', { className: 'text-dim', style: { fontSize: '12px', whiteSpace: 'nowrap' } }, level.next ? `${level.xpIntoLevel}/${level.xpForNext} XP` : `${computed.totalXP} XP · MAX`)
@@ -65,7 +99,6 @@ export function renderHoje(viewEl, params, nav) {
         h('span', { className: 'workout-tag' }, workoutType.label),
         completed ? h('span', { className: 'pill pill-green' }, icon('checkCircle', { size: 14 }), ' Concluído') : h('span', { className: 'pill pill-orange' }, 'Pendente')
       ),
-      h('p', { className: 'phrase' }, phraseForDay(currentDay)),
       cmp ? h('div', { className: 'stack' },
         h('div', { className: 'section-title' }, 'Comparação com o último treino semelhante'),
         h('div', { className: 'compare-line' },
@@ -99,9 +132,10 @@ export function renderHoje(viewEl, params, nav) {
       h('button', { className: 'btn btn-outline btn-block', onClick: () => nav.navigateTo('resultado') }, 'Ver resultado completo')
     ) : null;
 
-    mount(viewEl, h('div', { className: 'stack fade-up' }, header, heroCard, workoutCard, testCard, resultCard));
+    mount(viewEl, h('div', { className: 'stack fade-up' }, header, inspirationCard, heroCard, workoutCard, testCard, resultCard));
   }
 
+  auth.getSession().then(session => { user = session ? session.user : null; draw(); });
   draw();
   const unsub = store.subscribe(draw);
   return () => unsub();
