@@ -4,8 +4,20 @@ import { computeAll, computeStreaks, currentDayNumber } from './logic.js';
 import { todayISO } from './utils.js';
 import { supabaseClient } from './services/supabaseClient.js';
 
+// Distinguishes an untouched row (the signup trigger inserts a bare `{}`)
+// from one the app has actually written to at least once — checking only
+// `days` missed the very common case of "started the challenge, haven't
+// logged a workout yet" (startDate set, days still empty), which made a
+// second device see a brand new user instead of the one that just signed up.
 function hasRealData(state) {
-  return !!(state && state.days && Object.keys(state.days).length);
+  if (!state) return false;
+  if (state.startDate) return true;
+  if (state.days && Object.keys(state.days).length) return true;
+  if (state.habits && Object.keys(state.habits).length) return true;
+  if (state.dailyTasks && state.dailyTasks.length) return true;
+  if (state.tests && (state.tests.day1 || state.tests.day30)) return true;
+  if (state.bodyMetrics && (state.bodyMetrics.heightCm || (state.bodyMetrics.weights && state.bodyMetrics.weights.length))) return true;
+  return false;
 }
 
 class Store {
