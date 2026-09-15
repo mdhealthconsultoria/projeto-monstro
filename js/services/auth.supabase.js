@@ -29,6 +29,7 @@ async function fetchProfile(userId, { retry = true } = {}) {
 
 async function buildUser(session) {
   const profile = await fetchProfile(session.user.id);
+  console.log('[trace] buildUser raw profile:', JSON.stringify(profile));
   return {
     id: session.user.id,
     email: session.user.email,

@@ -18,11 +18,18 @@ function getClient() {
     }
     realClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
       auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
-      // Without this, the browser's HTTP cache can serve a stale response for
-      // a GET whose URL is byte-identical to one issued moments earlier (e.g.
-      // re-reading a profile right after updating it) — data changes, but the
-      // request looks unchanged to the cache. This data is never safe to cache.
-      global: { fetch: (input, init) => fetch(input, { ...init, cache: 'no-store' }) },
+      // `cache: 'no-store'` only stops the browser's own cache from reusing a
+      // byte-identical GET (e.g. re-reading a profile right after updating
+      // it) — it does nothing about an intermediate CDN/edge cache in front
+      // of the API, which only a request-header hint can influence. Send
+      // both: this data is never safe to cache anywhere.
+      global: {
+        fetch: (input, init) => fetch(input, {
+          ...init,
+          cache: 'no-store',
+          headers: { ...(init && init.headers), 'Cache-Control': 'no-cache', Pragma: 'no-cache' },
+        }),
+      },
     });
   }
   return realClient;
