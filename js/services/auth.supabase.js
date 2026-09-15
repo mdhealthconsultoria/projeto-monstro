@@ -27,21 +27,24 @@ async function fetchProfile(userId, { retry = true } = {}) {
   return data;
 }
 
-async function buildUser(session) {
-  const profile = await fetchProfile(session.user.id);
-  console.log('[trace] buildUser raw profile:', JSON.stringify(profile));
+function profileRowToUser(session, profile) {
   return {
     id: session.user.id,
     email: session.user.email,
     name: profile ? profile.name : '',
     nickname: profile ? profile.nickname : '',
     timezone: profile ? profile.timezone : (Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'),
-    onboardingComplete: profile ? profile.onboardingComplete === true || profile.onboarding_complete === true : false,
-    preferences: (profile && profile.preferences) || {
+    onboardingComplete: profile ? profile.onboarding_complete === true : false,
+    preferences: (profile && profile.preferences && Object.keys(profile.preferences).length ? profile.preferences : null) || {
       goal: null, inspiration: 'both', reminderTime: null,
       privacy: { nickname: true, avatar: true, streak: true, level: true, xp: true, workoutsCompleted: true },
     },
   };
+}
+
+async function buildUser(session) {
+  const profile = await fetchProfile(session.user.id);
+  return profileRowToUser(session, profile);
 }
 
 export async function signUp({ name, nickname, email, password }) {
@@ -102,11 +105,14 @@ export async function updateProfile(patch) {
     dbPatch.preferences = mergedPrefs;
   }
 
-  const { error } = await supabaseClient.from('profiles').update(dbPatch).eq('id', userId);
+  // .select().single() returns the row as written, in the very same response
+  // as the write itself — this is the only read guaranteed to reflect this
+  // write immediately, sidestepping whatever routes a plain follow-up GET
+  // through (proxy/edge layers a client can't see or control).
+  const { data: updatedRow, error } = await supabaseClient.from('profiles').update(dbPatch).eq('id', userId).select().single();
   if (error) throw new Error(error.message);
 
-  const { data: sessionData2 } = await supabaseClient.auth.getSession();
-  const user = await buildUser(sessionData2.session);
+  const user = profileRowToUser(sessionData.session, updatedRow);
   notify(user);
   return user;
 }

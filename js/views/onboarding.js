@@ -15,7 +15,6 @@ const GOALS = [
 ];
 
 export function renderOnboarding(viewEl, params, nav) {
-  console.log('[trace] renderOnboarding() called — new closure created');
   const answers = {
     claimLegacy: null,
     goal: null,
@@ -149,13 +148,19 @@ export function renderOnboarding(viewEl, params, nav) {
           s.habits[habit.id] = habit;
         });
       }
-      const updated = await auth.updateProfile({
+      await auth.updateProfile({
         onboardingComplete: true,
         preferences: { goal: answers.goal, inspiration: answers.inspiration, reminderTime: answers.reminderTime || null },
       });
-      console.log('[trace] updateProfile returned:', updated);
-      console.log('[trace] calling nav.navigateTo(boot) now');
-      nav.navigateTo('boot');
+      // Go straight to the app shell using the state already loaded locally,
+      // instead of nav.navigateTo('boot') — that would re-fetch the profile
+      // from the server, which has shown a delay before reflecting a write
+      // it just accepted. We already know onboarding is done; no need to ask again.
+      if (store.state.activeSession && store.state.activeSession.day) {
+        nav.navigateTo('treino', { day: store.state.activeSession.day, resume: true });
+      } else {
+        nav.navigateTo('hoje');
+      }
     } catch (err) {
       console.error('Falha ao concluir onboarding', err);
       finishError = (err && err.message) || 'Não foi possível concluir. Tente de novo.';
@@ -165,7 +170,6 @@ export function renderOnboarding(viewEl, params, nav) {
   }
 
   function draw() {
-    console.log('[trace] onboarding draw() stepIndex=', stepIndex, 'step=', steps[stepIndex], new Error().stack.split('\n').slice(1,4).join(' | '));
     const stepName = steps[stepIndex];
     const screen = h('div', { className: 'focus-screen stack onboarding-screen' },
       progressBar(),
@@ -180,7 +184,6 @@ export function renderOnboarding(viewEl, params, nav) {
   }
 
   auth.hasLegacyData().then(has => {
-    console.log('[trace] hasLegacyData resolved:', has, '(this may fire late and re-draw stale onboarding UI)');
     if (has) steps = ['legacy', ...steps];
     draw();
   });
