@@ -6,6 +6,19 @@ import { confirmDialog, toast, openModal } from '../ui.js';
 import { openTestModal } from './tests.js';
 import * as auth from '../services/auth.js';
 
+const SYNC_LABELS = {
+  idle: { label: 'Aguardando', tone: 'pill-orange' },
+  saving: { label: 'Salvando…', tone: 'pill-orange' },
+  saved: { label: 'Salvo na nuvem', tone: 'pill-green' },
+  offline: { label: 'Offline — vai sincronizar depois', tone: 'pill-orange' },
+  error: { label: 'Erro ao sincronizar', tone: 'pill-red' },
+};
+
+function syncBadge() {
+  const info = SYNC_LABELS[store.syncStatus] || SYNC_LABELS.idle;
+  return h('span', { className: `pill ${info.tone}` }, info.label);
+}
+
 function testRow(label, which, existing) {
   return h('div', { className: 'row-between' },
     h('div', {},
@@ -247,10 +260,13 @@ export function renderPerfil(viewEl, params, nav) {
       installCard,
 
       h('div', { className: 'card stack' },
-        h('div', { className: 'section-title' }, 'SEUS DADOS'),
+        h('div', { className: 'row-between' },
+          h('div', { className: 'section-title' }, 'SEUS DADOS'),
+          syncBadge()
+        ),
         h('p', { className: 'text-dim', style: { fontSize: '13px' } }, state.startDate
-          ? `Desafio iniciado em ${formatDateShort(state.startDate)}. Dados salvos apenas neste dispositivo — sincronização em nuvem chega em uma próxima versão.`
-          : 'Dados salvos apenas neste dispositivo — sincronização em nuvem chega em uma próxima versão.'),
+          ? `Desafio iniciado em ${formatDateShort(state.startDate)}. Sincronizado com a nuvem — dá pra entrar de outro aparelho.`
+          : 'Sincronizado com a nuvem — dá pra entrar de outro aparelho.'),
         h('button', { className: 'btn btn-outline btn-block', onClick: exportData }, icon('download', { size: 18 }), 'Exportar meus dados (JSON)')
       ),
 

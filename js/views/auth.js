@@ -1,6 +1,6 @@
 import { h, mount } from '../utils.js';
 import { icon, pyramidMark } from '../icons.js';
-import { openModal } from '../ui.js';
+import { openModal, toast } from '../ui.js';
 import * as auth from '../services/auth.js';
 
 function field(label, inputProps) {
@@ -52,21 +52,35 @@ export function renderLogin(viewEl, params, nav) {
     h('h1', { className: 'auth-title' }, 'Entrar'),
     form,
     h('div', { className: 'stack' },
-      h('button', { type: 'button', className: 'btn btn-ghost btn-block', onClick: () => openForgotPassword() }, 'Esqueci minha senha'),
+      h('button', { type: 'button', className: 'btn btn-ghost btn-block', onClick: () => openForgotPassword(emailF.input.value) }, 'Esqueci minha senha'),
       h('div', { className: 'auth-switch' }, 'Não tem conta? ', h('button', { type: 'button', className: 'link-btn', onClick: () => nav.navigateTo('signup') }, 'Criar conta'))
     )
   );
   mount(viewEl, screen);
 }
 
-function openForgotPassword() {
+function openForgotPassword(prefillEmail) {
+  const emailInput = h('input', { type: 'email', inputMode: 'email', placeholder: 'seu@email.com', value: prefillEmail || '' });
+  const msg = h('div', { className: 'field-error' });
   const content = h('div', { className: 'stack' },
-    h('p', { className: 'text-dim' },
-      'Sua conta ainda é local a este aparelho — não existe um servidor de e-mail conectado ainda, então não é possível recuperar a senha automaticamente nesta versão.'),
-    h('p', { className: 'text-dim' },
-      'Quando a sincronização em nuvem estiver ativa, a recuperação por e-mail vai funcionar normalmente. Por enquanto, se você esqueceu a senha, a única opção é criar uma nova conta.')
+    h('p', { className: 'text-dim' }, 'Vamos te enviar um link por e-mail para você criar uma nova senha.'),
+    h('div', { className: 'field' }, h('label', {}, 'E-mail'), emailInput),
+    msg,
+    h('button', {
+      className: 'btn btn-primary btn-block',
+      onClick: async () => {
+        if (!emailInput.value.trim()) { msg.textContent = 'Informe seu e-mail.'; return; }
+        try {
+          await auth.requestPasswordReset(emailInput.value);
+          toast('Link enviado — confira seu e-mail', { iconName: 'check' });
+          close();
+        } catch (e) {
+          msg.textContent = (e && e.message) || 'Não foi possível enviar o link agora.';
+        }
+      },
+    }, 'Enviar link de recuperação')
   );
-  openModal(content, { title: 'Recuperar senha' });
+  const close = openModal(content, { title: 'Recuperar senha' });
 }
 
 export function renderSignup(viewEl, params, nav) {
@@ -89,12 +103,16 @@ export function renderSignup(viewEl, params, nav) {
     }
     submitBtn.disabled = true;
     try {
-      await auth.signUp({
+      const result = await auth.signUp({
         name: nameF.input.value,
         nickname: nicknameF.input.value,
         email: emailF.input.value,
         password: passF.input.value,
       });
+      if (result.needsEmailConfirmation) {
+        showConfirmEmailScreen(viewEl, emailF.input.value, nav);
+        return;
+      }
       nav.navigateTo('boot');
     } catch (e) {
       formError.textContent = (e && e.message) || 'Não foi possível criar a conta.';
@@ -116,9 +134,21 @@ export function renderSignup(viewEl, params, nav) {
     h('h1', { className: 'auth-title' }, 'Criar conta'),
     h('p', { className: 'text-dim auth-disclaimer' },
       icon('lock', { size: 16 }),
-      ' Sua conta fica salva neste aparelho até conectarmos a nuvem. Sua senha nunca é guardada em texto puro.'),
+      ' Sua conta é protegida e sincronizada — dá pra entrar de outro aparelho depois.'),
     form,
     h('div', { className: 'auth-switch' }, 'Já tem conta? ', h('button', { type: 'button', className: 'link-btn', onClick: () => nav.navigateTo('login') }, 'Entrar'))
+  );
+  mount(viewEl, screen);
+}
+
+function showConfirmEmailScreen(viewEl, email, nav) {
+  const screen = authShell(
+    h('div', { className: 'card stack text-center' },
+      icon('checkCircle', { size: 36, className: 'text-dim' }),
+      h('h2', { style: { fontSize: '18px' } }, 'Confirme seu e-mail'),
+      h('p', { className: 'text-dim' }, `Mandamos um link de confirmação para ${email}. Abra o e-mail e toque no link para ativar sua conta — depois é só voltar aqui e entrar.`),
+      h('button', { className: 'btn btn-outline btn-block', onClick: () => nav.navigateTo('login') }, 'Já confirmei, ir para o login')
+    )
   );
   mount(viewEl, screen);
 }

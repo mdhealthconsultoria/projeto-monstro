@@ -75,6 +75,7 @@ export function defaultState() {
     dailyTaskCompletions: {},
     bodyMetrics: { heightCm: null, weights: [] },
     bodyDiaryConsent: false,
+    lastModifiedAt: null,
   };
 }
 

@@ -102,25 +102,42 @@ function renderNav(activeId) {
 // incomplete -> onboarding; otherwise -> the app shell (resuming an
 // in-progress workout session if one was left open).
 async function routeFromAuthState() {
-  const session = await auth.getSession();
-  if (!session) {
-    store.clearActive();
-    nav.navigateTo('login');
-    return;
-  }
+  try {
+    const session = await auth.getSession();
+    if (!session) {
+      store.clearActive();
+      nav.navigateTo('login');
+      return;
+    }
 
-  await store.loadForUser(session.user.id);
+    await store.loadForUser(session.user.id);
 
-  if (!session.user.onboardingComplete) {
-    nav.navigateTo('onboarding');
-    return;
-  }
+    if (!session.user.onboardingComplete) {
+      nav.navigateTo('onboarding');
+      return;
+    }
 
-  if (store.state.activeSession && store.state.activeSession.day) {
-    nav.navigateTo('treino', { day: store.state.activeSession.day, resume: true });
-  } else {
-    nav.navigateTo('hoje');
+    if (store.state.activeSession && store.state.activeSession.day) {
+      nav.navigateTo('treino', { day: store.state.activeSession.day, resume: true });
+    } else {
+      nav.navigateTo('hoje');
+    }
+  } catch (err) {
+    console.error('Falha ao iniciar o app', err);
+    showBootError(err);
   }
+}
+
+function showBootError(err) {
+  appRoot.classList.add('view-focus');
+  navEl.style.display = 'none';
+  viewEl.innerHTML = '';
+  const box = h('div', { className: 'focus-screen', style: { justifyContent: 'center', alignItems: 'center', textAlign: 'center', gap: '14px' } },
+    h('h2', {}, 'Não foi possível carregar'),
+    h('p', { className: 'text-dim' }, (err && err.message) || 'Verifique sua internet e tente novamente.'),
+    h('button', { className: 'btn btn-primary', onClick: () => window.location.reload() }, 'Tentar de novo')
+  );
+  viewEl.appendChild(box);
 }
 
 if ('serviceWorker' in navigator) {
