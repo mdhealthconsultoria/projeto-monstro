@@ -128,6 +128,18 @@ if ('serviceWorker' in navigator) {
   // own async boot (IndexedDB open) can outlast page load, causing the listener to attach
   // after 'load' already fired and silently never registering the worker.
   navigator.serviceWorker.register('./sw.js').catch(err => console.error('SW falhou', err));
+
+  // A page already open (especially an installed PWA reopened from the home
+  // screen icon) keeps running the JS it already loaded even after a newer
+  // service worker takes over in the background. Without this, a device can
+  // get stuck showing a broken/outdated build indefinitely. Reload once,
+  // automatically, the moment the new worker takes control.
+  let reloadedForUpdate = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (reloadedForUpdate) return;
+    reloadedForUpdate = true;
+    window.location.reload();
+  });
 }
 
 routeFromAuthState();
