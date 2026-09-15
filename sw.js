@@ -1,0 +1,86 @@
+const CACHE_NAME = 'monstro-cache-v1';
+const PRECACHE_URLS = [
+  './',
+  './index.html',
+  './manifest.json',
+  './css/style.css',
+  './js/main.js',
+  './js/db.js',
+  './js/model.js',
+  './js/logic.js',
+  './js/store.js',
+  './js/timer.js',
+  './js/charts.js',
+  './js/utils.js',
+  './js/icons.js',
+  './js/views/hoje.js',
+  './js/views/jornada.js',
+  './js/views/evolucao.js',
+  './js/views/fotos.js',
+  './js/views/perfil.js',
+  './js/views/treino.js',
+  './js/views/checkin.js',
+  './js/views/resultado.js',
+  './js/views/dayDetail.js',
+  './js/views/tests.js',
+  './icons/icon-192.png',
+  './icons/icon-512.png',
+  './icons/apple-touch-icon.png',
+  './icons/maskable-192.png',
+  './icons/maskable-512.png',
+];
+
+self.addEventListener('install', event => {
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then(cache => cache.addAll(PRECACHE_URLS))
+      .then(() => self.skipWaiting())
+  );
+});
+
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys()
+      .then(names => Promise.all(names.filter(n => n !== CACHE_NAME).map(n => caches.delete(n))))
+      .then(() => self.clients.claim())
+  );
+});
+
+self.addEventListener('fetch', event => {
+  const req = event.request;
+  if (req.method !== 'GET') return;
+
+  const url = new URL(req.url);
+  const isSameOrigin = url.origin === self.location.origin;
+
+  if (isSameOrigin) {
+    // App shell: cache-first, fall back to network, then to index.html for navigations.
+    event.respondWith(
+      caches.match(req).then(cached => {
+        if (cached) return cached;
+        return fetch(req)
+          .then(res => {
+            const copy = res.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put(req, copy));
+            return res;
+          })
+          .catch(() => {
+            if (req.mode === 'navigate') return caches.match('./index.html');
+            return cached;
+          });
+      })
+    );
+  } else {
+    // Cross-origin (fonts): stale-while-revalidate.
+    event.respondWith(
+      caches.open(CACHE_NAME).then(cache =>
+        cache.match(req).then(cached => {
+          const fetchPromise = fetch(req)
+            .then(res => { cache.put(req, res.clone()); return res; })
+            .catch(() => cached);
+          return cached || fetchPromise;
+        })
+      )
+    );
+  }
+});
