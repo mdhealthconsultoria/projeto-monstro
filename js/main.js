@@ -50,6 +50,7 @@ let cleanupFn = null;
 
 const nav = {
   navigateTo(screenId, params = {}) {
+    console.log('[trace] navigateTo(', screenId, ')', new Error().stack.split('\n').slice(1,3).join(' | '));
     if (screenId === 'boot') { routeFromAuthState(); return; }
 
     if (cleanupFn) { try { cleanupFn(); } catch { /* ignore */ } cleanupFn = null; }
@@ -102,8 +103,10 @@ function renderNav(activeId) {
 // incomplete -> onboarding; otherwise -> the app shell (resuming an
 // in-progress workout session if one was left open).
 async function routeFromAuthState() {
+  console.log('[trace] routeFromAuthState start');
   try {
     const session = await auth.getSession();
+    console.log('[trace] session:', session ? { id: session.user.id, onboardingComplete: session.user.onboardingComplete } : null);
     if (!session) {
       store.clearActive();
       nav.navigateTo('login');
@@ -113,9 +116,11 @@ async function routeFromAuthState() {
     await store.loadForUser(session.user.id);
 
     if (!session.user.onboardingComplete) {
+      console.log('[trace] routing to onboarding because onboardingComplete is falsy');
       nav.navigateTo('onboarding');
       return;
     }
+    console.log('[trace] onboardingComplete true, proceeding to hoje/treino');
 
     if (store.state.activeSession && store.state.activeSession.day) {
       nav.navigateTo('treino', { day: store.state.activeSession.day, resume: true });
