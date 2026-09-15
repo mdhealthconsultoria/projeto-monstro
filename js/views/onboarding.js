@@ -127,25 +127,38 @@ export function renderOnboarding(viewEl, params, nav) {
     if (stepIndex > 0) { stepIndex--; draw(); }
   }
 
+  let finishError = '';
+  let finishing = false;
+
   async function finish() {
-    if (answers.claimLegacy) {
-      await auth.claimLegacyData(store.userId);
-      await store.loadForUser(store.userId);
-    }
-    if (answers.startToday) {
-      store.startChallengeToday();
-    }
-    if (answers.firstGoalTitle.trim()) {
-      store.mutate(s => {
-        const habit = newHabit({ title: answers.firstGoalTitle, category: answers.firstGoalCategory });
-        s.habits[habit.id] = habit;
+    finishing = true;
+    finishError = '';
+    draw();
+    try {
+      if (answers.claimLegacy) {
+        await auth.claimLegacyData(store.userId);
+        await store.loadForUser(store.userId);
+      }
+      if (answers.startToday) {
+        store.startChallengeToday();
+      }
+      if (answers.firstGoalTitle.trim()) {
+        store.mutate(s => {
+          const habit = newHabit({ title: answers.firstGoalTitle, category: answers.firstGoalCategory });
+          s.habits[habit.id] = habit;
+        });
+      }
+      await auth.updateProfile({
+        onboardingComplete: true,
+        preferences: { goal: answers.goal, inspiration: answers.inspiration, reminderTime: answers.reminderTime || null },
       });
+      nav.navigateTo('boot');
+    } catch (err) {
+      console.error('Falha ao concluir onboarding', err);
+      finishError = (err && err.message) || 'Não foi possível concluir. Tente de novo.';
+      finishing = false;
+      draw();
     }
-    await auth.updateProfile({
-      onboardingComplete: true,
-      preferences: { goal: answers.goal, inspiration: answers.inspiration, reminderTime: answers.reminderTime || null },
-    });
-    nav.navigateTo('boot');
   }
 
   function draw() {
@@ -153,9 +166,10 @@ export function renderOnboarding(viewEl, params, nav) {
     const screen = h('div', { className: 'focus-screen stack onboarding-screen' },
       progressBar(),
       stepRenderers[stepName](),
+      finishError ? h('div', { className: 'field-error text-center' }, finishError) : null,
       h('div', { className: 'row', style: { marginTop: '12px' } },
-        stepIndex > 0 ? h('button', { className: 'btn btn-outline', onClick: back }, icon('chevronLeft', { size: 18 }), 'Voltar') : h('span'),
-        h('button', { className: 'btn btn-primary grow', disabled: !canAdvance(), onClick: next }, stepIndex === steps.length - 1 ? 'Concluir' : 'Continuar', icon('chevronRight', { size: 18 }))
+        stepIndex > 0 ? h('button', { className: 'btn btn-outline', onClick: back, disabled: finishing }, icon('chevronLeft', { size: 18 }), 'Voltar') : h('span'),
+        h('button', { className: 'btn btn-primary grow', disabled: !canAdvance() || finishing, onClick: next }, finishing ? 'Concluindo…' : (stepIndex === steps.length - 1 ? 'Concluir' : 'Continuar'), icon('chevronRight', { size: 18 }))
       )
     );
     mount(viewEl, screen);
