@@ -23,12 +23,18 @@ function getClient() {
       // it) — it does nothing about an intermediate CDN/edge cache in front
       // of the API, which only a request-header hint can influence. Send
       // both: this data is never safe to cache anywhere.
+      //
+      // IMPORTANT: `init.headers` here is a real `Headers` instance, not a
+      // plain object — `{...init.headers}` silently drops every entry
+      // (including the `apikey`/`Authorization` headers supabase-js sets),
+      // which breaks auth with a confusing 401. Merge via `new Headers()`.
       global: {
-        fetch: (input, init) => fetch(input, {
-          ...init,
-          cache: 'no-store',
-          headers: { ...(init && init.headers), 'Cache-Control': 'no-cache', Pragma: 'no-cache' },
-        }),
+        fetch: (input, init) => {
+          const headers = new Headers((init && init.headers) || {});
+          headers.set('Cache-Control', 'no-cache');
+          headers.set('Pragma', 'no-cache');
+          return fetch(input, { ...init, cache: 'no-store', headers });
+        },
       },
     });
   }
