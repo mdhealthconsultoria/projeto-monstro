@@ -17,6 +17,7 @@ function hasRealData(state) {
   if (state.dailyTasks && state.dailyTasks.length) return true;
   if (state.tests && (state.tests.day1 || state.tests.day30)) return true;
   if (state.bodyMetrics && (state.bodyMetrics.heightCm || (state.bodyMetrics.weights && state.bodyMetrics.weights.length))) return true;
+  if (state.breathing && (state.breathing.reminderTime || state.breathing.lastCompletedAt || (state.breathing.sessions && state.breathing.sessions.length))) return true;
   return false;
 }
 

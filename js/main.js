@@ -18,6 +18,9 @@ import { renderOnboarding } from './views/onboarding.js';
 import { renderJornada } from './views/jornada.js';
 import { renderMinhaBase } from './views/minhaBase.js';
 import { renderChecklist } from './views/checklist.js';
+import { renderLanding } from './views/landing.js';
+import { renderComoUsar } from './views/comoUsar.js';
+import { renderRespirar } from './views/respirar.js';
 
 const TABS = [
   { id: 'hoje', label: 'Hoje', icon: 'today', render: renderHoje },
@@ -36,6 +39,8 @@ const FOCUS_SCREENS = {
   signup: renderSignup,
   onboarding: renderOnboarding,
   admin: renderAdmin,
+  landing: renderLanding,
+  comoUsar: renderComoUsar,
 };
 
 // Screens reached one level deeper than a tab (e.g. from "Evoluir"), but
@@ -44,6 +49,7 @@ const SUB_SCREENS = {
   jornada: { render: renderJornada, activeTab: 'evoluir' },
   minhaBase: { render: renderMinhaBase, activeTab: 'evoluir' },
   checklist: { render: renderChecklist, activeTab: 'evoluir' },
+  respirar: { render: renderRespirar, activeTab: 'evoluir' },
   comunidadeDetalhe: { render: renderComunidadeDetalhe, activeTab: 'comunidades' },
   desafioDetalhe: { render: renderDesafioDetalhe, activeTab: 'comunidades' },
 };
@@ -112,7 +118,7 @@ async function routeFromAuthState() {
     const session = await auth.getSession();
     if (!session) {
       store.clearActive();
-      nav.navigateTo('login');
+      nav.navigateTo('landing');
       return;
     }
 

@@ -281,7 +281,7 @@ export function renderPerfil(viewEl, params, nav) {
       ),
 
       h('div', { className: 'card stack' },
-        h('button', { className: 'btn btn-outline btn-block', onClick: () => { auth.signOut(); nav.navigateTo('boot'); } }, icon('logout', { size: 18 }), 'Sair')
+        h('button', { className: 'btn btn-outline btn-block', onClick: async () => { await auth.signOut(); nav.navigateTo('boot'); } }, icon('logout', { size: 18 }), 'Sair')
       ),
 
       h('div', { className: 'card stack' },

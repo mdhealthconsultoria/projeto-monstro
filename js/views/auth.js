@@ -49,6 +49,16 @@ export function renderLogin(viewEl, params, nav) {
   );
 
   const screen = authShell(
+    h('div', { className: 'login-impact' },
+      h('div', { className: 'login-impact-kicker' }, icon('sparkle', { size: 16 }), ' O SEU PRÓXIMO DIA CONTA'),
+      h('h2', {}, 'Você não precisa mudar tudo hoje.'),
+      h('p', {}, 'Precisa apenas voltar para a sua base. O Skeelo transforma treinos, hábitos e pequenas decisões em uma história real da sua evolução.'),
+      h('div', { className: 'login-impact-points' },
+        h('span', {}, icon('checkCircle', { size: 15 }), ' Clareza para agir'),
+        h('span', {}, icon('flame', { size: 15 }), ' Constância que aparece'),
+        h('span', {}, icon('users', { size: 15 }), ' Evolução junto')
+      )
+    ),
     h('h1', { className: 'auth-title' }, 'Entrar'),
     form,
     h('div', { className: 'stack' },
@@ -131,6 +141,10 @@ export function renderSignup(viewEl, params, nav) {
   );
 
   const screen = authShell(
+    h('div', { className: 'login-impact compact' },
+      h('div', { className: 'login-impact-kicker' }, icon('pyramid', { size: 16 }), ' UMA BASE DE CADA VEZ'),
+      h('p', {}, 'Comece hoje. Continue amanhã. Torne-se mais forte nas ações que você escolhe repetir.')
+    ),
     h('h1', { className: 'auth-title' }, 'Criar conta'),
     h('p', { className: 'text-dim auth-disclaimer' },
       icon('lock', { size: 16 }),

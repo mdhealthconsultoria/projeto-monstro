@@ -36,6 +36,13 @@ export function renderEvoluir(viewEl, params, nav) {
           onClick: () => nav.navigateTo('jornada'),
         }),
         hubCard({
+          iconName: 'wind',
+          title: 'Respire e Comece',
+          subtitle: 'Prática guiada e lembrete dentro do app',
+          meta: state.breathing && state.breathing.reminderTime ? state.breathing.reminderTime : null,
+          onClick: () => nav.navigateTo('respirar'),
+        }),
+        hubCard({
           iconName: 'pyramid',
           title: 'Minha Base',
           subtitle: 'Hábitos, inglês, leitura, oração e mais',

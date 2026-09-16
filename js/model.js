@@ -74,6 +74,7 @@ export function defaultState() {
     dailyTasks: [],
     dailyTaskCompletions: {},
     bodyMetrics: { heightCm: null, weights: [] },
+    breathing: { reminderTime: null, lastCompletedAt: null, sessions: [] },
     bodyDiaryConsent: false,
     lastModifiedAt: null,
   };
@@ -102,4 +103,3 @@ export function levelForXP(xp) {
     progress: next ? (xp - current.min) / (next.min - current.min) : 1,
   };
 }
-

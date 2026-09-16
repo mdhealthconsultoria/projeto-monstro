@@ -38,6 +38,20 @@ export function renderHoje(viewEl, params, nav) {
       inspiration.reference ? h('p', { className: 'text-faint', style: { fontSize: '12px', marginTop: '4px' } }, inspiration.reference) : null
     ) : null;
 
+    const breathing = state.breathing || {};
+    const now = new Date();
+    const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    const completedBreathingToday = breathing.lastCompletedAt && new Date(breathing.lastCompletedAt).toLocaleDateString('pt-BR') === now.toLocaleDateString('pt-BR');
+    const breathingDue = breathing.reminderTime && currentTime >= breathing.reminderTime && !completedBreathingToday;
+    const breathingCard = h('div', { className: `card stack breathing-today ${breathingDue ? 'is-due' : ''}` },
+      h('div', { className: 'row-between' },
+        h('div', { className: 'row' }, icon('wind', { size: 21 }), h('h3', {}, completedBreathingToday ? 'Respiração concluída' : 'Respire e Comece')),
+        breathing.reminderTime ? h('span', { className: `pill ${breathingDue ? 'pill-orange' : 'pill-green'}` }, icon('clock', { size: 13 }), ` ${breathing.reminderTime}`) : null
+      ),
+      h('p', { className: 'text-dim' }, completedBreathingToday ? 'Você já separou um momento para sua base hoje.' : breathingDue ? 'Seu lembrete chegou. Reserve alguns minutos para se preparar com calma.' : 'Uma prática curta de atenção antes de treinar, focar ou recomeçar.'),
+      h('button', { className: 'btn btn-outline btn-block', onClick: () => nav.navigateTo('respirar') }, icon('wind', { size: 18 }), completedBreathingToday ? 'Fazer novamente' : 'Respirar agora')
+    );
+
     if (!currentDay) {
       mount(viewEl, h('div', { className: 'stack fade-up' },
         header,
@@ -51,7 +65,9 @@ export function renderHoje(viewEl, params, nav) {
           h('div', { className: 'section-title' }, 'ENQUANTO ISSO' ),
           h('button', { className: 'btn btn-outline btn-block', onClick: () => nav.navigateTo('minhaBase') }, icon('pyramid', { size: 18 }), 'Ver Minha Base'),
           h('button', { className: 'btn btn-outline btn-block', onClick: () => nav.navigateTo('checklist') }, icon('checkCircle', { size: 18 }), 'Checklist diário')
-        )
+        ),
+        breathingCard,
+        h('button', { className: 'btn btn-ghost btn-block', onClick: () => nav.navigateTo('comoUsar', { backTo: 'hoje' }) }, icon('compass', { size: 18 }), 'Como usar o Skeelo')
       ));
       return;
     }
@@ -132,7 +148,7 @@ export function renderHoje(viewEl, params, nav) {
       h('button', { className: 'btn btn-outline btn-block', onClick: () => nav.navigateTo('resultado') }, 'Ver resultado completo')
     ) : null;
 
-    mount(viewEl, h('div', { className: 'stack fade-up' }, header, inspirationCard, heroCard, workoutCard, testCard, resultCard));
+    mount(viewEl, h('div', { className: 'stack fade-up' }, header, inspirationCard, heroCard, breathingCard, workoutCard, testCard, resultCard, h('button', { className: 'btn btn-ghost btn-block', onClick: () => nav.navigateTo('comoUsar', { backTo: 'hoje' }) }, icon('compass', { size: 18 }), 'Como usar o Skeelo')));
   }
 
   auth.getSession().then(session => { user = session ? session.user : null; draw(); });
