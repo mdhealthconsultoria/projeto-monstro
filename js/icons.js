@@ -44,6 +44,8 @@ const PATHS = {
   clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/>',
   logout: '<path d="M9 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h3"/><path d="M14 16l4-4-4-4"/><path d="M18 12H9"/>',
   download: '<path d="M12 3v13"/><path d="M7 11l5 5 5-5"/><path d="M5 20h14"/>',
+  globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 3.8 5.8 3.8 9s-1.3 6.5-3.8 9c-2.5-2.5-3.8-5.8-3.8-9s1.3-6.5 3.8-9Z"/>',
+  crown: '<path d="M4 8l3.5 3L12 6l4.5 5L20 8l-1.5 9h-13L4 8Z"/><path d="M6.5 20h11"/>',
 };
 
 // The Skeelo Evolution brand mark: a three-level stepped pyramid — Corpo

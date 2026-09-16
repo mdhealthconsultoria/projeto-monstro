@@ -6,6 +6,8 @@ import * as auth from './services/auth.js';
 import { renderHoje } from './views/hoje.js';
 import { renderEvoluir } from './views/evoluir.js';
 import { renderComunidades } from './views/comunidades.js';
+import { renderComunidadeDetalhe } from './views/comunidadeDetalhe.js';
+import { renderDesafioDetalhe } from './views/desafioDetalhe.js';
 import { renderProgresso } from './views/progresso.js';
 import { renderPerfil } from './views/perfil.js';
 import { renderTreino } from './views/treino.js';
@@ -40,6 +42,8 @@ const SUB_SCREENS = {
   jornada: { render: renderJornada, activeTab: 'evoluir' },
   minhaBase: { render: renderMinhaBase, activeTab: 'evoluir' },
   checklist: { render: renderChecklist, activeTab: 'evoluir' },
+  comunidadeDetalhe: { render: renderComunidadeDetalhe, activeTab: 'comunidades' },
+  desafioDetalhe: { render: renderDesafioDetalhe, activeTab: 'comunidades' },
 };
 
 const viewEl = document.getElementById('view');

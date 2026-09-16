@@ -1,4 +1,4 @@
-const CACHE_NAME = 'skeelo-cache-v4';
+const CACHE_NAME = 'skeelo-cache-v5';
 const PRECACHE_URLS = [
   './',
   './index.html',
@@ -36,6 +36,9 @@ const PRECACHE_URLS = [
   './js/views/onboarding.js',
   './js/views/evoluir.js',
   './js/views/comunidades.js',
+  './js/views/comunidadeDetalhe.js',
+  './js/views/desafioDetalhe.js',
+  './js/services/communities.js',
   './js/views/progresso.js',
   './js/views/minhaBase.js',
   './js/views/checklist.js',
@@ -68,8 +71,14 @@ self.addEventListener('fetch', event => {
 
   const url = new URL(req.url);
   const isSameOrigin = url.origin === self.location.origin;
+  // Supabase (auth/rest/storage) must never be cached: responses are per-user
+  // and change constantly, and the Cache API keys on URL only (not headers),
+  // so caching them risks serving stale AND cross-account data after reload.
+  const isSupabase = url.hostname.endsWith('.supabase.co');
 
-  if (isSameOrigin) {
+  if (isSupabase) {
+    event.respondWith(fetch(req));
+  } else if (isSameOrigin) {
     // App shell: cache-first, fall back to network, then to index.html for navigations.
     event.respondWith(
       caches.match(req).then(cached => {
