@@ -65,7 +65,7 @@ async function buildUser(session) {
 
 export async function signUp({ name, nickname, email, password }) {
   if (!name || !email || !password) throw new Error('Preencha nome, e-mail e senha.');
-  if (password.length < 6) throw new Error('A senha precisa ter pelo menos 6 caracteres.');
+  if (password.length < 8) throw new Error('A senha precisa ter pelo menos 8 caracteres.');
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
 
   const { data, error } = await supabaseClient.auth.signUp({
@@ -136,7 +136,7 @@ export async function updateProfile(patch) {
 export async function changePassword({ currentPassword, newPassword }) {
   const { data: sessionData } = await supabaseClient.auth.getSession();
   if (!sessionData.session) throw new Error('Nenhuma sessão ativa.');
-  if (newPassword.length < 6) throw new Error('A nova senha precisa ter pelo menos 6 caracteres.');
+  if (newPassword.length < 8) throw new Error('A nova senha precisa ter pelo menos 8 caracteres.');
 
   const email = sessionData.session.user.email;
   const { error: verifyError } = await supabaseClient.auth.signInWithPassword({ email, password: currentPassword });

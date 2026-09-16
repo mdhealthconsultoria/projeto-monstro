@@ -9,7 +9,6 @@ export function h(tag, props, ...children) {
     else if (key === 'style' && typeof val === 'object') Object.assign(el.style, val);
     else if (key.startsWith('on') && typeof val === 'function') el.addEventListener(key.slice(2).toLowerCase(), val);
     else if (key === 'dataset' && typeof val === 'object') Object.assign(el.dataset, val);
-    else if (key === 'html') el.innerHTML = val;
     else if (key in el) {
       try { el[key] = val; } catch { el.setAttribute(key, val); }
     } else {

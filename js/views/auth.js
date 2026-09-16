@@ -87,7 +87,7 @@ export function renderSignup(viewEl, params, nav) {
   const nameF = field('Nome', { type: 'text', autocomplete: 'name' });
   const nicknameF = field('Apelido', { type: 'text', autocomplete: 'nickname', placeholder: 'Como quer ser chamado' });
   const emailF = field('E-mail', { type: 'email', autocomplete: 'email', inputMode: 'email' });
-  const passF = field('Senha', { type: 'password', autocomplete: 'new-password', placeholder: 'Mínimo 6 caracteres' });
+  const passF = field('Senha', { type: 'password', autocomplete: 'new-password', placeholder: 'Mínimo 8 caracteres' });
   const confirmF = field('Confirmar senha', { type: 'password', autocomplete: 'new-password' });
   const formError = h('div', { className: 'field-error text-center' });
   const submitBtn = h('button', { type: 'submit', className: 'btn btn-primary btn-huge btn-block' }, 'Criar conta');
@@ -96,7 +96,7 @@ export function renderSignup(viewEl, params, nav) {
     formError.textContent = '';
     if (!nameF.input.value.trim()) { formError.textContent = 'Informe seu nome.'; return; }
     if (!emailF.input.value.trim()) { formError.textContent = 'Informe seu e-mail.'; return; }
-    if (passF.input.value.length < 6) { formError.textContent = 'A senha precisa ter pelo menos 6 caracteres.'; return; }
+    if (passF.input.value.length < 8) { formError.textContent = 'A senha precisa ter pelo menos 8 caracteres.'; return; }
     if (passF.input.value !== confirmF.input.value) {
       formError.textContent = 'As senhas não coincidem.';
       return;
