@@ -5,6 +5,7 @@ import { TOTAL_DAYS, LEVELS } from '../model.js';
 import { confirmDialog, toast, openModal } from '../ui.js';
 import { openTestModal } from './tests.js';
 import * as auth from '../services/auth.js';
+import { amIAdmin } from '../services/admin.js';
 
 const SYNC_LABELS = {
   idle: { label: 'Aguardando', tone: 'pill-orange' },
@@ -150,12 +151,15 @@ async function exportData() {
 export function renderPerfil(viewEl, params, nav) {
   let deferredInstallPrompt = null;
   let user = null;
+  let isAdmin = false;
   const onBeforeInstall = e => { e.preventDefault(); deferredInstallPrompt = e; draw(); };
   window.addEventListener('beforeinstallprompt', onBeforeInstall);
 
   async function refreshUser() {
     const session = await auth.getSession();
     user = session ? session.user : null;
+    draw();
+    isAdmin = user ? await amIAdmin() : false;
     draw();
   }
 
@@ -226,6 +230,12 @@ export function renderPerfil(viewEl, params, nav) {
       h('h1', {}, 'Perfil'),
 
       accountCard,
+
+      isAdmin ? h('div', { className: 'card stack' },
+        h('div', { className: 'row' }, icon('crown', { size: 20 }), h('h3', {}, 'Painel administrativo')),
+        h('p', { className: 'text-dim', style: { fontSize: '13px' } }, 'Visão geral do produto, insights e gestão de contas — visível só pra você.'),
+        h('button', { className: 'btn btn-primary btn-block', onClick: () => nav.navigateTo('admin') }, 'Abrir painel')
+      ) : null,
 
       h('div', { className: 'card stack' },
         h('div', { className: 'row-between' },

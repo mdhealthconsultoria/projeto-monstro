@@ -8,6 +8,7 @@ import { renderEvoluir } from './views/evoluir.js';
 import { renderComunidades } from './views/comunidades.js';
 import { renderComunidadeDetalhe } from './views/comunidadeDetalhe.js';
 import { renderDesafioDetalhe } from './views/desafioDetalhe.js';
+import { renderAdmin } from './views/admin.js';
 import { renderProgresso } from './views/progresso.js';
 import { renderPerfil } from './views/perfil.js';
 import { renderTreino } from './views/treino.js';
@@ -34,6 +35,7 @@ const FOCUS_SCREENS = {
   login: renderLogin,
   signup: renderSignup,
   onboarding: renderOnboarding,
+  admin: renderAdmin,
 };
 
 // Screens reached one level deeper than a tab (e.g. from "Evoluir"), but

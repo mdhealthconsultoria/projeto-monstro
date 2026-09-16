@@ -27,7 +27,22 @@ async function fetchProfile(userId, { retry = true } = {}) {
   return data;
 }
 
+const DEFAULT_PREFERENCES = {
+  goal: null, inspiration: 'both', reminderTime: null,
+  privacy: { nickname: true, avatar: true, streak: true, level: true, xp: true, workoutsCompleted: true },
+};
+
 function profileRowToUser(session, profile) {
+  // Merge field-by-field (not "has any keys? use as-is") — onboarding only
+  // ever writes {goal, inspiration, reminderTime}, never `privacy`, so a
+  // naive "use profile.preferences if non-empty" left `privacy` undefined
+  // for every real user and crashed the Perfil screen's privacy toggles.
+  const rawPrefs = (profile && profile.preferences) || {};
+  const preferences = {
+    ...DEFAULT_PREFERENCES,
+    ...rawPrefs,
+    privacy: { ...DEFAULT_PREFERENCES.privacy, ...(rawPrefs.privacy || {}) },
+  };
   return {
     id: session.user.id,
     email: session.user.email,
@@ -35,15 +50,16 @@ function profileRowToUser(session, profile) {
     nickname: profile ? profile.nickname : '',
     timezone: profile ? profile.timezone : (Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'),
     onboardingComplete: profile ? profile.onboarding_complete === true : false,
-    preferences: (profile && profile.preferences && Object.keys(profile.preferences).length ? profile.preferences : null) || {
-      goal: null, inspiration: 'both', reminderTime: null,
-      privacy: { nickname: true, avatar: true, streak: true, level: true, xp: true, workoutsCompleted: true },
-    },
+    preferences,
   };
 }
 
 async function buildUser(session) {
   const profile = await fetchProfile(session.user.id);
+  if (profile && profile.suspended) {
+    await supabaseClient.auth.signOut();
+    throw new Error('Sua conta foi suspensa. Entre em contato com o suporte.');
+  }
   return profileRowToUser(session, profile);
 }
 
