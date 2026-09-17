@@ -6,6 +6,7 @@ import { confirmDialog, toast, openModal } from '../ui.js';
 import { openTestModal } from './tests.js';
 import * as auth from '../services/auth.js';
 import { amIAdmin } from '../services/admin.js';
+import { setPreferencesCache } from '../notifications.js';
 
 const SYNC_LABELS = {
   idle: { label: 'Aguardando', tone: 'pill-orange' },
@@ -158,6 +159,7 @@ export function renderPerfil(viewEl, params, nav) {
   async function refreshUser() {
     const session = await auth.getSession();
     user = session ? session.user : null;
+    if (user) setPreferencesCache(user.preferences);
     draw();
     isAdmin = user ? await amIAdmin() : false;
     draw();
@@ -281,6 +283,7 @@ export function renderPerfil(viewEl, params, nav) {
       ),
 
       h('div', { className: 'card stack' },
+        h('button', { className: 'btn btn-outline btn-block', onClick: () => nav.navigateTo('notificacoes') }, icon('clock', { size: 18 }), 'Notificações'),
         h('button', { className: 'btn btn-outline btn-block', onClick: () => nav.navigateTo('ajuda') }, icon('info', { size: 18 }), 'Central de Ajuda')
       ),
 

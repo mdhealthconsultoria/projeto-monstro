@@ -184,6 +184,7 @@ export function defaultState() {
     journey90: { startDate: null },
     businessConcepts: { appliedIds: [] }, // Business Master — autoavaliação, sem nota/prova
     knowledgeItems: {}, // { id, title, type, stage, sessions: [{date, minutes, note}], createdAt, archived }
+    notificationPrefs: { dailyReminder: true, breathingReminder: true, habitReminders: true },
     lastModifiedAt: null,
   };
 }

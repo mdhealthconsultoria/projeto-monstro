@@ -28,6 +28,8 @@ import { renderJornada90 } from './views/jornada90.js';
 import { renderValueScore } from './views/valueScore.js';
 import { renderConhecimento } from './views/conhecimento.js';
 import { renderAjuda } from './views/ajuda.js';
+import { renderNotificacoes } from './views/notificacoes.js';
+import { startScheduler, setPreferencesCache, getPreferencesCache } from './notifications.js';
 
 const TABS = [
   { id: 'hoje', label: 'Hoje', icon: 'today', render: renderHoje },
@@ -64,6 +66,7 @@ const SUB_SCREENS = {
   valueScore: { render: renderValueScore, activeTab: 'evoluir' },
   conhecimento: { render: renderConhecimento, activeTab: 'evoluir' },
   ajuda: { render: renderAjuda, activeTab: 'perfil' },
+  notificacoes: { render: renderNotificacoes, activeTab: 'perfil' },
   comunidadeDetalhe: { render: renderComunidadeDetalhe, activeTab: 'comunidades' },
   desafioDetalhe: { render: renderDesafioDetalhe, activeTab: 'comunidades' },
 };
@@ -124,6 +127,10 @@ function renderNav(activeId) {
   items.forEach(i => navEl.appendChild(i));
 }
 
+// Agendador de notificações locais: roda enquanto houver uma sessão ativa,
+// para no logout. Ver notifications.js — não é push real (app fechado).
+let stopNotificationScheduler = null;
+
 // Central routing decision: not logged in -> auth; logged in but onboarding
 // incomplete -> onboarding; otherwise -> the app shell (resuming an
 // in-progress workout session if one was left open).
@@ -132,11 +139,16 @@ async function routeFromAuthState() {
     const session = await auth.getSession();
     if (!session) {
       store.clearActive();
+      if (stopNotificationScheduler) { stopNotificationScheduler(); stopNotificationScheduler = null; }
       nav.navigateTo('landing');
       return;
     }
 
     await store.loadForUser(session.user.id);
+    setPreferencesCache(session.user.preferences);
+    if (!stopNotificationScheduler) {
+      stopNotificationScheduler = startScheduler(() => store.state, getPreferencesCache);
+    }
 
     if (!session.user.onboardingComplete) {
       nav.navigateTo('onboarding');

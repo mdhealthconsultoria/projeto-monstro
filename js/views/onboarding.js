@@ -4,6 +4,7 @@ import { store } from '../store.js';
 import * as auth from '../services/auth.js';
 import { newHabit } from '../habits.js';
 import { HABIT_CATEGORIES } from '../habits.js';
+import { setPreferencesCache } from '../notifications.js';
 
 const GOALS = [
   { key: 'forca', label: 'Força' },
@@ -148,10 +149,11 @@ export function renderOnboarding(viewEl, params, nav) {
           s.habits[habit.id] = habit;
         });
       }
-      await auth.updateProfile({
+      const updatedUser = await auth.updateProfile({
         onboardingComplete: true,
         preferences: { goal: answers.goal, inspiration: answers.inspiration, reminderTime: answers.reminderTime || null },
       });
+      setPreferencesCache(updatedUser.preferences);
       // Go straight to the app shell using the state already loaded locally,
       // instead of nav.navigateTo('boot') — that would re-fetch the profile
       // from the server, which has shown a delay before reflecting a write
