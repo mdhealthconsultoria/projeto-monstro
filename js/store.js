@@ -1,6 +1,6 @@
 import { loadState, saveState, clearStateForUser } from './db.js';
 import { defaultState, emptyDay, typeForDay, levelForXP, LIFE_AREAS } from './model.js';
-import { computeAll, computeStreaks, currentDayNumber, computeAreaScore, computeMontroScore } from './logic.js';
+import { computeAll, computeStreaks, currentDayNumber, computeAreaScore, computeMontroScore, computeHealthScore } from './logic.js';
 import { todayISO } from './utils.js';
 import { supabaseClient } from './services/supabaseClient.js';
 
@@ -18,6 +18,9 @@ function hasRealData(state) {
   if (state.tests && (state.tests.day1 || state.tests.day30)) return true;
   if (state.bodyMetrics && (state.bodyMetrics.heightCm || (state.bodyMetrics.weights && state.bodyMetrics.weights.length))) return true;
   if (state.breathing && (state.breathing.reminderTime || state.breathing.lastCompletedAt || (state.breathing.sessions && state.breathing.sessions.length))) return true;
+  if (state.activeAreas && state.activeAreas.length) return true;
+  if (state.healthProfile && (state.healthProfile.smoker != null || state.healthProfile.alcoholLevel || state.healthProfile.birthYear || (state.healthProfile.conditions && state.healthProfile.conditions.length) || (state.healthProfile.measurements && state.healthProfile.measurements.length))) return true;
+  if (state.focus && state.focus.sessions && state.focus.sessions.length) return true;
   return false;
 }
 
@@ -84,6 +87,7 @@ class Store {
     for (const area of LIFE_AREAS) areaScores[area.key] = computeAreaScore(this.state, area.key);
     this.derived.areaScores = areaScores;
     this.derived.montroScore = computeMontroScore(this.state);
+    this.derived.healthScore = computeHealthScore(this.state);
   }
 
   subscribe(fn) {

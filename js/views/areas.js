@@ -144,6 +144,17 @@ function renderDetail(viewEl, nav, areaKey) {
         }, isActive ? 'Ativa' : 'Ativar')
       ),
 
+      areaKey === 'saude' ? h('button', {
+        className: 'row-between card card-tight', style: { width: '100%', textAlign: 'left', color: 'var(--text)' },
+        onClick: () => nav.navigateTo('saude'),
+      },
+        h('div', {},
+          h('div', { style: { fontWeight: 700, fontSize: '13.5px' } }, 'Perfil de saúde e Health Score'),
+          h('div', { className: 'text-faint', style: { fontSize: '11.5px' } }, 'Sono, atividade, tabagismo, álcool, medições')
+        ),
+        icon('chevronRight', { size: 18, className: 'text-faint' })
+      ) : null,
+
       h('div', { className: 'section-title' }, 'SEUS HÁBITOS NESTA ÁREA'),
       habitsInArea.length
         ? h('div', { className: 'stack' }, habitsInArea.map(hb => habitRow(state, hb)))

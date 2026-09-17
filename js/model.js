@@ -78,6 +78,25 @@ export function areaFor(key) {
   return LIFE_AREAS.find(a => a.key === key) || null;
 }
 
+// Manual health measurements the user can log. Deliberately NOT paired with
+// a clinical risk calculator (PREVENT/ASCVD etc.) yet — that needs its own
+// careful, separate pass. This is just a private history, like bodyMetrics.
+export const HEALTH_MEASUREMENT_TYPES = [
+  { key: 'bpSys', label: 'Pressão sistólica', unit: 'mmHg' },
+  { key: 'bpDia', label: 'Pressão diastólica', unit: 'mmHg' },
+  { key: 'restingHR', label: 'Freq. cardíaca de repouso', unit: 'bpm' },
+  { key: 'glucose', label: 'Glicemia em jejum', unit: 'mg/dL' },
+  { key: 'hba1c', label: 'HbA1c', unit: '%' },
+  { key: 'totalChol', label: 'Colesterol total', unit: 'mg/dL' },
+  { key: 'hdl', label: 'HDL', unit: 'mg/dL' },
+  { key: 'ldl', label: 'LDL', unit: 'mg/dL' },
+  { key: 'triglycerides', label: 'Triglicerídeos', unit: 'mg/dL' },
+];
+
+export function healthTypeInfo(key) {
+  return HEALTH_MEASUREMENT_TYPES.find(t => t.key === key) || null;
+}
+
 export function defaultState() {
   return {
     version: 2,
@@ -93,6 +112,25 @@ export function defaultState() {
     breathing: { reminderTime: null, lastCompletedAt: null, sessions: [] },
     bodyDiaryConsent: false,
     activeAreas: [],
+    healthProfile: {
+      sex: null, // 'M' | 'F' | null (prefere não informar)
+      birthYear: null,
+      smoker: null, // boolean | null
+      alcoholLevel: null, // 'none' | 'moderate' | 'high' | null
+      conditions: [], // texto livre, autorrelatado
+      measurements: [], // { id, type, value, date }
+    },
+    focus: {
+      endAt: null,
+      pausedRemaining: null, // seconds left, set only while paused
+      mode: 'work', // 'work' | 'break'
+      currentDurationMin: null, // duration (minutes) of the queued/running session
+      objective: '',
+      cyclesCompleted: 0, // since the last long break
+      totalCyclesCompleted: 0,
+      sessions: [], // { date, mode, durationMin, objective, completedAt }
+      settings: { workMin: 25, breakMin: 5, longBreakMin: 15, cyclesUntilLong: 4 },
+    },
     lastModifiedAt: null,
   };
 }

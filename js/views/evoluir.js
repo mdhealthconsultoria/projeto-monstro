@@ -62,6 +62,13 @@ export function renderEvoluir(viewEl, params, nav) {
           subtitle: 'Tarefas simples do seu dia',
           meta: taskCount ? `${taskCount} tarefa${taskCount === 1 ? '' : 's'}` : null,
           onClick: () => nav.navigateTo('checklist'),
+        }),
+        hubCard({
+          iconName: 'clock',
+          title: 'Foco',
+          subtitle: 'Ciclos de foco cronometrados, resistentes a segundo plano',
+          meta: state.focus && state.focus.totalCyclesCompleted ? `${state.focus.totalCyclesCompleted} ciclos` : null,
+          onClick: () => nav.navigateTo('focus'),
         })
       )
     ));

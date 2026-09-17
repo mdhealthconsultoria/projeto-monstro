@@ -22,6 +22,8 @@ import { renderLanding } from './views/landing.js';
 import { renderComoUsar } from './views/comoUsar.js';
 import { renderRespirar } from './views/respirar.js';
 import { renderAreas } from './views/areas.js';
+import { renderFocus } from './views/focus.js';
+import { renderSaude } from './views/saude.js';
 
 const TABS = [
   { id: 'hoje', label: 'Hoje', icon: 'today', render: renderHoje },
@@ -52,6 +54,8 @@ const SUB_SCREENS = {
   checklist: { render: renderChecklist, activeTab: 'evoluir' },
   respirar: { render: renderRespirar, activeTab: 'evoluir' },
   areas: { render: renderAreas, activeTab: 'evoluir' },
+  focus: { render: renderFocus, activeTab: 'evoluir' },
+  saude: { render: renderSaude, activeTab: 'evoluir' },
   comunidadeDetalhe: { render: renderComunidadeDetalhe, activeTab: 'comunidades' },
   desafioDetalhe: { render: renderDesafioDetalhe, activeTab: 'comunidades' },
 };

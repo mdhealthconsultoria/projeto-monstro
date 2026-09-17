@@ -264,3 +264,44 @@ export function computeMontroScore(state) {
   if (!scored.length) return 0;
   return Math.round(scored.reduce((a, b) => a + b, 0) / scored.length);
 }
+
+// ---- Health Score (comportamental) ----
+//
+// Isto NÃO é uma calculadora de risco clínico (tipo PREVENT/ASCVD) — não usa
+// fórmula validada nenhuma e não deve ser lida como avaliação médica. É uma
+// leitura comportamental simples a partir de dados que o próprio usuário já
+// informou (sono, atividade, alimentação, tabagismo, álcool). Cada fator
+// ausente é simplesmente ignorado (nunca vira 0 nem é inventado); se nenhum
+// fator tiver dado, o score inteiro é null e a tela mostra "dados insuficientes".
+function categoryHabitsScore(state, categories) {
+  const habits = Object.values(state.habits).filter(h => h.active && categories.includes(h.category));
+  if (!habits.length) return null;
+  const scores = habits.map(h => computeHabitScore(state, h));
+  return Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+}
+
+const ALCOHOL_SCORE = { none: 100, moderate: 70, high: 30 };
+
+export function computeHealthScore(state) {
+  const profile = state.healthProfile || {};
+  const factors = [];
+
+  const sleep = categoryHabitsScore(state, ['sono']);
+  if (sleep != null) factors.push(sleep);
+
+  const activity = computeAreaScore(state, 'fisico');
+  if (activity != null) factors.push(activity);
+
+  const nutrition = categoryHabitsScore(state, ['alimentacao', 'hidratacao']);
+  if (nutrition != null) factors.push(nutrition);
+
+  if (profile.smoker === false) factors.push(100);
+  else if (profile.smoker === true) factors.push(20);
+
+  if (profile.alcoholLevel && ALCOHOL_SCORE[profile.alcoholLevel] != null) {
+    factors.push(ALCOHOL_SCORE[profile.alcoholLevel]);
+  }
+
+  if (!factors.length) return null;
+  return Math.round(factors.reduce((a, b) => a + b, 0) / factors.length);
+}
