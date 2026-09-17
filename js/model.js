@@ -67,10 +67,10 @@ export function isDayStarted(dayRec) {
 // dragging it down (see logic.js#computeMontroScore).
 export const LIFE_AREAS = [
   { key: 'mente', label: 'Mente', icon: 'moon', color: '#7c9cff', description: 'Foco, calma e clareza mental.' },
-  { key: 'fisico', label: 'Físico', icon: 'bolt', color: '#ff7a1a', description: 'Movimento, força e condicionamento.' },
-  { key: 'saude', label: 'Saúde', icon: 'heart', color: '#e5484d', description: 'Sono, alimentação e hidratação.' },
-  { key: 'profissional', label: 'Profissional', icon: 'briefcase', color: '#a89f92', description: 'Trabalho e geração de valor.' },
-  { key: 'conhecimento', label: 'Conhecimento', icon: 'book', color: '#4fae6a', description: 'Estudo, leitura e novas habilidades.' },
+  { key: 'fisico', label: 'Físico', icon: 'bolt', color: '#2b8c80', description: 'Movimento, força e condicionamento.' },
+  { key: 'saude', label: 'Saúde', icon: 'heart', color: '#4fd1c5', description: 'Sono, alimentação e hidratação.' },
+  { key: 'profissional', label: 'Profissional', icon: 'briefcase', color: '#6e90a8', description: 'Trabalho e geração de valor.' },
+  { key: 'conhecimento', label: 'Conhecimento', icon: 'book', color: '#4aa8d8', description: 'Estudo, leitura e novas habilidades.' },
   { key: 'social', label: 'Social', icon: 'share', color: '#4fb8e0', description: 'Comunidade e relacionamentos.' },
 ];
 

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'skeelo-cache-v13';
+const CACHE_NAME = 'skeelo-cache-v14';
 const PRECACHE_URLS = [
   './',
   './index.html',

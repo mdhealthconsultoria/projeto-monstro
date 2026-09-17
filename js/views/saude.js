@@ -4,7 +4,7 @@ import { store } from '../store.js';
 import { toast, confirmDialog } from '../ui.js';
 import { HEALTH_MEASUREMENT_TYPES, healthTypeInfo, areaFor } from '../model.js';
 
-const SAUDE_COLOR = (areaFor('saude') || {}).color || '#e5484d';
+const SAUDE_COLOR = (areaFor('saude') || {}).color || '#4fd1c5';
 
 function field(label, controlEl) {
   return h('div', { className: 'field' }, h('label', {}, label), controlEl);

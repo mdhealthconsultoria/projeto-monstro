@@ -5,7 +5,7 @@ import { toast } from '../ui.js';
 import { areaFor } from '../model.js';
 import { BUSINESS_CONCEPTS, businessCategoryInfo } from '../businessLibrary.js';
 
-const VALUE_COLOR = (areaFor('profissional') || {}).color || '#a89f92';
+const VALUE_COLOR = (areaFor('profissional') || {}).color || '#6e90a8';
 
 function conceptCard(concept, applied) {
   const cat = businessCategoryInfo(concept.category);

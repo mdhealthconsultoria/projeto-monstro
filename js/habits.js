@@ -4,16 +4,16 @@
 import { uid, todayISO } from './utils.js';
 
 export const HABIT_CATEGORIES = [
-  { key: 'ingles', label: 'Inglês', icon: 'book', color: '#ff7a1a', area: 'conhecimento' },
-  { key: 'leitura', label: 'Leitura', icon: 'book', color: '#4fae6a', area: 'conhecimento' },
-  { key: 'estudos', label: 'Estudos', icon: 'edit', color: '#ffb347', area: 'conhecimento' },
-  { key: 'exercicio', label: 'Exercício', icon: 'bolt', color: '#ff7a1a', area: 'fisico' },
-  { key: 'oracao', label: 'Oração', icon: 'heart', color: '#e5484d', area: 'mente' },
-  { key: 'sono', label: 'Sono', icon: 'moon', color: '#7c9cff', area: 'saude' },
-  { key: 'alimentacao', label: 'Alimentação', icon: 'target', color: '#4fae6a', area: 'saude' },
-  { key: 'trabalho', label: 'Trabalho', icon: 'briefcase', color: '#a89f92', area: 'profissional' },
-  { key: 'hidratacao', label: 'Hidratação', icon: 'droplet', color: '#4fb8e0', area: 'saude' },
-  { key: 'personalizado', label: 'Personalizado', icon: 'target', color: '#ff7a1a', area: 'mente' },
+  { key: 'ingles', label: 'Inglês', icon: 'book', color: '#4aa8d8', area: 'conhecimento' },
+  { key: 'leitura', label: 'Leitura', icon: 'book', color: '#4aa8d8', area: 'conhecimento' },
+  { key: 'estudos', label: 'Estudos', icon: 'edit', color: '#4aa8d8', area: 'conhecimento' },
+  { key: 'exercicio', label: 'Exercício', icon: 'bolt', color: '#2b8c80', area: 'fisico' },
+  { key: 'oracao', label: 'Oração', icon: 'heart', color: '#7c9cff', area: 'mente' },
+  { key: 'sono', label: 'Sono', icon: 'moon', color: '#4fd1c5', area: 'saude' },
+  { key: 'alimentacao', label: 'Alimentação', icon: 'target', color: '#4fd1c5', area: 'saude' },
+  { key: 'trabalho', label: 'Trabalho', icon: 'briefcase', color: '#6e90a8', area: 'profissional' },
+  { key: 'hidratacao', label: 'Hidratação', icon: 'droplet', color: '#4fd1c5', area: 'saude' },
+  { key: 'personalizado', label: 'Personalizado', icon: 'target', color: '#7c9cff', area: 'mente' },
 ];
 
 export function categoryFor(key) {

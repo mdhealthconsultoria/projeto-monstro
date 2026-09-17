@@ -8,7 +8,7 @@ function svgEl(tag, attrs) {
 }
 
 // points: [{day, value}], already sorted by day ascending, values are real registered numbers only.
-export function lineChart(points, { unit = '', color = '#ff7a1a', height = 140, title = '' } = {}) {
+export function lineChart(points, { unit = '', color = '#2b8c80', height = 140, title = '' } = {}) {
   const wrap = document.createElement('div');
   wrap.className = 'chart';
   if (!points.length) {
@@ -48,7 +48,7 @@ export function lineChart(points, { unit = '', color = '#ff7a1a', height = 140, 
   points.forEach((p, i) => {
     const isBest = i === bestIdx;
     const r = isBest ? 4.5 : 3;
-    svg.appendChild(svgEl('circle', { cx: xFor(i), cy: yFor(p.value), r, fill: isBest ? '#ffb347' : color, class: isBest ? 'chart-dot-best' : 'chart-dot' }));
+    svg.appendChild(svgEl('circle', { cx: xFor(i), cy: yFor(p.value), r, fill: isBest ? '#4fd1c5' : color, class: isBest ? 'chart-dot-best' : 'chart-dot' }));
   });
 
   wrap.appendChild(svg);
