@@ -3,6 +3,7 @@ import { defaultState, emptyDay, typeForDay, levelForXP, LIFE_AREAS } from './mo
 import { computeAll, computeStreaks, currentDayNumber, computeAreaScore, computeMontroScore, computeHealthScore, currentJourneyDay, computeJourneyAdherence, computeValueScore } from './logic.js';
 import { todayISO } from './utils.js';
 import { supabaseClient } from './services/supabaseClient.js';
+import { deleteAllPhotosCloud } from './services/photosCloud.js';
 
 // Distinguishes an untouched row (the signup trigger inserts a bare `{}`)
 // from one the app has actually written to at least once — checking only
@@ -160,6 +161,7 @@ class Store {
 
   async resetAll() {
     await clearStateForUser(this.userId);
+    await deleteAllPhotosCloud(this.userId);
     this.state = defaultState();
     await saveState(this.userId, this.state);
     this.recompute();

@@ -153,19 +153,27 @@ export function renderPerfil(viewEl, params, nav) {
   let deferredInstallPrompt = null;
   let user = null;
   let isAdmin = false;
+  let destroyed = false;
   const onBeforeInstall = e => { e.preventDefault(); deferredInstallPrompt = e; draw(); };
   window.addEventListener('beforeinstallprompt', onBeforeInstall);
 
+  // Sem o guard `destroyed`, uma checagem de sessão/admin lenta que só
+  // resolve depois do usuário já ter saído desta tela remontaria o Perfil
+  // por cima de QUALQUER tela aberta agora (todas compartilham o mesmo nó
+  // #view) — bug real encontrado em hoje.js, corrigido aqui pelo mesmo motivo.
   async function refreshUser() {
     const session = await auth.getSession();
+    if (destroyed) return;
     user = session ? session.user : null;
     if (user) setPreferencesCache(user.preferences);
     draw();
     isAdmin = user ? await amIAdmin() : false;
+    if (destroyed) return;
     draw();
   }
 
   function draw() {
+    if (destroyed) return;
     const state = store.state;
     const { computed, streaks, level } = store.derived;
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
@@ -330,5 +338,5 @@ export function renderPerfil(viewEl, params, nav) {
   refreshUser();
   draw();
   const unsub = store.subscribe(draw);
-  return () => { unsub(); window.removeEventListener('beforeinstallprompt', onBeforeInstall); };
+  return () => { destroyed = true; unsub(); window.removeEventListener('beforeinstallprompt', onBeforeInstall); };
 }

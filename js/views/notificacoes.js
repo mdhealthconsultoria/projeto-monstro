@@ -49,14 +49,21 @@ function toggleRow(label, sub, checked, onToggle) {
 
 export function renderNotificacoes(viewEl, params, nav) {
   let user = null;
+  let destroyed = false;
 
+  // Sem o guard `destroyed`, uma checagem de sessão lenta que só resolve
+  // depois do usuário já ter saído desta tela remontaria Notificações por
+  // cima de QUALQUER tela aberta agora (todas compartilham o mesmo nó
+  // #view) — bug real encontrado em hoje.js, corrigido aqui pelo mesmo motivo.
   async function refreshUser() {
     const session = await auth.getSession();
+    if (destroyed) return;
     user = session ? session.user : null;
     draw();
   }
 
   function draw() {
+    if (destroyed) return;
     const state = store.state;
     const prefs = state.notificationPrefs;
     const status = permissionStatus();
@@ -116,5 +123,5 @@ export function renderNotificacoes(viewEl, params, nav) {
   refreshUser();
   draw();
   const unsub = store.subscribe(draw);
-  return () => unsub();
+  return () => { destroyed = true; unsub(); };
 }

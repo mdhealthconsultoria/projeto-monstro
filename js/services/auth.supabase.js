@@ -3,6 +3,7 @@
 import { supabaseClient } from './supabaseClient.js';
 import { todayISO } from '../utils.js';
 import * as legacy from './auth.local.js';
+import { deleteAllPhotosCloud } from './photosCloud.js';
 
 const listeners = new Set();
 
@@ -160,6 +161,7 @@ export async function deleteAccount() {
   // Removing the auth.users row itself requires an admin/service-role call,
   // which only a server-side function can safely do — not built yet. For now
   // this clears all of the user's own data (allowed by RLS) and signs out.
+  await deleteAllPhotosCloud(userId);
   await supabaseClient.from('user_app_state').delete().eq('user_id', userId);
   await supabaseClient.from('profiles').delete().eq('id', userId);
   await signOut();

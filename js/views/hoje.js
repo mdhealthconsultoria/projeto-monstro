@@ -16,8 +16,10 @@ const PRIMARY_RECORD_BY_TYPE = {
 
 export function renderHoje(viewEl, params, nav) {
   let user = null;
+  let destroyed = false;
 
   function draw() {
+    if (destroyed) return;
     const state = store.state;
     const { currentDay, computed, streaks, level } = store.derived;
 
@@ -151,8 +153,17 @@ export function renderHoje(viewEl, params, nav) {
     mount(viewEl, h('div', { className: 'stack fade-up' }, header, inspirationCard, heroCard, breathingCard, workoutCard, testCard, resultCard, h('button', { className: 'btn btn-ghost btn-block', onClick: () => nav.navigateTo('comoUsar', { backTo: 'hoje' }) }, icon('compass', { size: 18 }), 'Como usar o Skeelo')));
   }
 
-  auth.getSession().then(session => { user = session ? session.user : null; draw(); });
+  // auth.getSession() faz uma chamada de rede real (checa sessão + perfil) —
+  // se demorar e o usuário já tiver saído desta tela nesse meio tempo, o
+  // .then() ainda dispara; sem o guard `destroyed`, draw() remonta o
+  // conteúdo do Hoje por cima de QUALQUER tela que esteja aberta agora,
+  // porque todo view compartilha o mesmo nó #view. Bug real, não só de teste.
+  auth.getSession().then(session => {
+    if (destroyed) return;
+    user = session ? session.user : null;
+    draw();
+  });
   draw();
   const unsub = store.subscribe(draw);
-  return () => unsub();
+  return () => { destroyed = true; unsub(); };
 }

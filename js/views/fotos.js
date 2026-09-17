@@ -3,6 +3,7 @@ import { icon } from '../icons.js';
 import { addPhoto, getPhotosForUser, deletePhoto } from '../db.js';
 import { confirmDialog, toast } from '../ui.js';
 import { store } from '../store.js';
+import { uploadPhotoCloud, deletePhotoCloud, downloadPhotoCloud } from '../services/photosCloud.js';
 
 const PHOTO_DAYS = [1, 10, 20, 30];
 const CATEGORIES = [
@@ -15,6 +16,7 @@ export function renderFotos(viewEl, params, nav) {
   let photos = [];
   let activeDay = PHOTO_DAYS[0];
   const objectUrls = [];
+  let didCheckCloud = false;
 
   function revokeUrls() {
     objectUrls.forEach(u => URL.revokeObjectURL(u));
@@ -26,9 +28,47 @@ export function renderFotos(viewEl, params, nav) {
     return matches.sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0] || null;
   }
 
+  // Só busca "restaurar da nuvem" uma vez por visita à tela — chamar de novo
+  // a cada loadAndDraw() (ex: depois de salvar uma foto) dispararia dezenas
+  // de requisições paralelas sem necessidade (o que acabou de ser salvo já
+  // está local, e o resto da nuvem não mudou só porque salvamos uma foto).
   async function loadAndDraw() {
     photos = await getPhotosForUser(store.userId);
     draw();
+    if (!didCheckCloud) {
+      didCheckCloud = true;
+      fillMissingFromCloud();
+    }
+  }
+
+  // Melhor esforço, silencioso: para cada dia/categoria sem foto local (ex:
+  // aparelho novo), tenta baixar da nuvem e cachear localmente. Se o bucket
+  // ainda não existir (migration não rodada) ou não houver nada lá, não faz
+  // nada — não é um erro visível pro usuário.
+  async function fillMissingFromCloud() {
+    if (!store.userId) return;
+    const missing = [];
+    for (const day of PHOTO_DAYS) {
+      for (const cat of CATEGORIES) {
+        if (!photoFor(day, cat.key)) missing.push({ day, category: cat.key });
+      }
+    }
+    if (!missing.length) return;
+
+    const results = await Promise.all(missing.map(async m => {
+      const blob = await downloadPhotoCloud(store.userId, m.day, m.category);
+      return blob ? { ...m, blob } : null;
+    }));
+
+    let changed = false;
+    for (const found of results.filter(Boolean)) {
+      const id = uid();
+      const rec = { id, userId: store.userId, day: found.day, category: found.category, blob: found.blob, createdAt: todayISO() };
+      await addPhoto(rec);
+      photos.push(rec);
+      changed = true;
+    }
+    if (changed) draw();
   }
 
   function slot(day, category) {
@@ -44,6 +84,7 @@ export function renderFotos(viewEl, params, nav) {
             const ok = await confirmDialog({ title: 'Remover foto', message: 'Apagar esta foto permanentemente?', confirmLabel: 'Apagar', danger: true });
             if (!ok) return;
             await deletePhoto(photo.id);
+            deletePhotoCloud(store.userId, day, category);
             toast('Foto removida', { iconName: 'trash' });
             loadAndDraw();
           },
@@ -60,6 +101,7 @@ export function renderFotos(viewEl, params, nav) {
         await addPhoto({ id: uid(), userId: store.userId, day, category, blob: file, createdAt: todayISO() });
         toast('Foto salva', { iconName: 'check' });
         loadAndDraw();
+        uploadPhotoCloud(store.userId, day, category, file);
       },
     });
     return h('label', { className: 'photo-slot' },
@@ -104,7 +146,7 @@ export function renderFotos(viewEl, params, nav) {
 
     mount(viewEl, h('div', { className: 'stack fade-up' },
       h('h1', {}, 'Evolução física'),
-      h('p', { className: 'text-dim' }, 'Fotos ficam salvas apenas neste dispositivo — nunca são enviadas para nenhum servidor.'),
+      h('p', { className: 'text-dim' }, 'Fotos ficam salvas neste aparelho e, quando disponível, são enviadas de forma privada para a nuvem — só você tem acesso, e elas voltam a aparecer se você trocar de aparelho.'),
       h('div', { className: 'card stack' },
         h('div', { className: 'section-title' }, 'REGISTRAR FOTOS'),
         tabs,
