@@ -27,6 +27,7 @@ import { renderSaude } from './views/saude.js';
 import { renderJornada90 } from './views/jornada90.js';
 import { renderValueScore } from './views/valueScore.js';
 import { renderConhecimento } from './views/conhecimento.js';
+import { renderAjuda } from './views/ajuda.js';
 
 const TABS = [
   { id: 'hoje', label: 'Hoje', icon: 'today', render: renderHoje },
@@ -62,6 +63,7 @@ const SUB_SCREENS = {
   jornada90: { render: renderJornada90, activeTab: 'evoluir' },
   valueScore: { render: renderValueScore, activeTab: 'evoluir' },
   conhecimento: { render: renderConhecimento, activeTab: 'evoluir' },
+  ajuda: { render: renderAjuda, activeTab: 'perfil' },
   comunidadeDetalhe: { render: renderComunidadeDetalhe, activeTab: 'comunidades' },
   desafioDetalhe: { render: renderDesafioDetalhe, activeTab: 'comunidades' },
 };
