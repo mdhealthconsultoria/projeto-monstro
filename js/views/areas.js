@@ -155,6 +155,17 @@ function renderDetail(viewEl, nav, areaKey) {
         icon('chevronRight', { size: 18, className: 'text-faint' })
       ) : null,
 
+      areaKey === 'profissional' ? h('button', {
+        className: 'row-between card card-tight', style: { width: '100%', textAlign: 'left', color: 'var(--text)' },
+        onClick: () => nav.navigateTo('valueScore'),
+      },
+        h('div', {},
+          h('div', { style: { fontWeight: 700, fontSize: '13.5px' } }, 'Value Score e Business Master'),
+          h('div', { className: 'text-faint', style: { fontSize: '11.5px' } }, 'Conceitos de vendas, liderança, negociação e mais')
+        ),
+        icon('chevronRight', { size: 18, className: 'text-faint' })
+      ) : null,
+
       h('div', { className: 'section-title' }, 'SEUS HÁBITOS NESTA ÁREA'),
       habitsInArea.length
         ? h('div', { className: 'stack' }, habitsInArea.map(hb => habitRow(state, hb)))

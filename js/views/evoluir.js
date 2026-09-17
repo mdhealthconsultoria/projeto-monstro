@@ -69,6 +69,13 @@ export function renderEvoluir(viewEl, params, nav) {
           subtitle: 'Ciclos de foco cronometrados, resistentes a segundo plano',
           meta: state.focus && state.focus.totalCyclesCompleted ? `${state.focus.totalCyclesCompleted} ciclos` : null,
           onClick: () => nav.navigateTo('focus'),
+        }),
+        hubCard({
+          iconName: 'journey',
+          title: 'Jornada de 90 dias',
+          subtitle: 'Construção, Fortalecimento e Autonomia',
+          meta: store.derived.journeyDay ? `Dia ${store.derived.journeyDay}/90` : null,
+          onClick: () => nav.navigateTo('jornada90'),
         })
       )
     ));

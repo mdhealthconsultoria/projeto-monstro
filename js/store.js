@@ -1,6 +1,6 @@
 import { loadState, saveState, clearStateForUser } from './db.js';
 import { defaultState, emptyDay, typeForDay, levelForXP, LIFE_AREAS } from './model.js';
-import { computeAll, computeStreaks, currentDayNumber, computeAreaScore, computeMontroScore, computeHealthScore } from './logic.js';
+import { computeAll, computeStreaks, currentDayNumber, computeAreaScore, computeMontroScore, computeHealthScore, currentJourneyDay, computeJourneyAdherence, computeValueScore } from './logic.js';
 import { todayISO } from './utils.js';
 import { supabaseClient } from './services/supabaseClient.js';
 
@@ -21,6 +21,8 @@ function hasRealData(state) {
   if (state.activeAreas && state.activeAreas.length) return true;
   if (state.healthProfile && (state.healthProfile.smoker != null || state.healthProfile.alcoholLevel || state.healthProfile.birthYear || (state.healthProfile.conditions && state.healthProfile.conditions.length) || (state.healthProfile.measurements && state.healthProfile.measurements.length))) return true;
   if (state.focus && state.focus.sessions && state.focus.sessions.length) return true;
+  if (state.journey90 && state.journey90.startDate) return true;
+  if (state.businessConcepts && state.businessConcepts.appliedIds && state.businessConcepts.appliedIds.length) return true;
   return false;
 }
 
@@ -88,6 +90,9 @@ class Store {
     this.derived.areaScores = areaScores;
     this.derived.montroScore = computeMontroScore(this.state);
     this.derived.healthScore = computeHealthScore(this.state);
+    this.derived.journeyDay = currentJourneyDay(this.state);
+    this.derived.journeyAdherence = computeJourneyAdherence(this.state);
+    this.derived.valueScore = computeValueScore(this.state);
   }
 
   subscribe(fn) {

@@ -97,6 +97,22 @@ export function healthTypeInfo(key) {
   return HEALTH_MEASUREMENT_TYPES.find(t => t.key === key) || null;
 }
 
+// Jornada de 90 dias: uma jornada estruturada de treinamento/consolidação
+// sobre o app inteiro (não só o desafio de calistenia). Deliberadamente NÃO
+// afirmamos que 90 dias formam um hábito automaticamente — é uma jornada de
+// treinamento, não uma garantia (ver copy nas telas).
+export const JOURNEY_TOTAL_DAYS = 90;
+export const JOURNEY_PHASES = [
+  { key: 'construcao', label: 'Construção', range: [1, 30], description: 'Criar rotina, aprender o sistema e começar pequeno. O objetivo aqui é formar consistência, não perfeição.' },
+  { key: 'fortalecimento', label: 'Fortalecimento', range: [31, 60], description: 'Aumentar a dificuldade aos poucos, consolidar comportamentos e ganhar mais autonomia sobre a rotina.' },
+  { key: 'autonomia', label: 'Autonomia', range: [61, 90], description: 'Reduzir a dependência de lembretes e estímulos externos, mantendo os hábitos por conta própria.' },
+];
+
+export function journeyPhaseForDay(day) {
+  if (day == null) return null;
+  return JOURNEY_PHASES.find(p => day >= p.range[0] && day <= p.range[1]) || JOURNEY_PHASES[JOURNEY_PHASES.length - 1];
+}
+
 export function defaultState() {
   return {
     version: 2,
@@ -131,6 +147,8 @@ export function defaultState() {
       sessions: [], // { date, mode, durationMin, objective, completedAt }
       settings: { workMin: 25, breakMin: 5, longBreakMin: 15, cyclesUntilLong: 4 },
     },
+    journey90: { startDate: null },
+    businessConcepts: { appliedIds: [] }, // Business Master — autoavaliação, sem nota/prova
     lastModifiedAt: null,
   };
 }

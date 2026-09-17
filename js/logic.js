@@ -1,5 +1,6 @@
-import { TOTAL_DAYS, typeForDay, isDayCompleted, EXERCISES_BY_TYPE, LIFE_AREAS } from './model.js';
+import { TOTAL_DAYS, typeForDay, isDayCompleted, EXERCISES_BY_TYPE, LIFE_AREAS, JOURNEY_TOTAL_DAYS } from './model.js';
 import { habitStats, habitCheckinsFor, dateKey } from './habits.js';
+import { BUSINESS_CONCEPTS } from './businessLibrary.js';
 
 // ---- Aggregation of a single exercise's sets ----
 export function aggregateExercise(exerciseKey, exerciseData) {
@@ -301,6 +302,57 @@ export function computeHealthScore(state) {
   if (profile.alcoholLevel && ALCOHOL_SCORE[profile.alcoholLevel] != null) {
     factors.push(ALCOHOL_SCORE[profile.alcoholLevel]);
   }
+
+  if (!factors.length) return null;
+  return Math.round(factors.reduce((a, b) => a + b, 0) / factors.length);
+}
+
+// ---- Jornada de 90 dias ----
+//
+// Não é o desafio de calistenia (esse é separado, TOTAL_DAYS=30) — é uma
+// jornada de consolidação sobre o app inteiro. "Dia ativo" aqui significa
+// pelo menos um check-in de hábito naquela data; é um proxy simples e
+// transparente, não uma métrica que tenta capturar tudo que o usuário fez.
+export function currentJourneyDay(state, now = new Date()) {
+  if (!state.journey90 || !state.journey90.startDate) return null;
+  const start = new Date(state.journey90.startDate);
+  const startMidnight = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+  const nowMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const diffDays = Math.round((nowMidnight - startMidnight) / 86400000);
+  return Math.min(JOURNEY_TOTAL_DAYS, Math.max(1, diffDays + 1));
+}
+
+export function computeJourneyAdherence(state) {
+  const day = currentJourneyDay(state);
+  if (!day) return null;
+  const checkinDates = new Set(Object.values(state.habitCheckins).map(c => c.date));
+  const start = new Date(state.journey90.startDate);
+  let active = 0;
+  for (let i = 0; i < day; i++) {
+    const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
+    if (checkinDates.has(dateKey(d))) active++;
+  }
+  return { day, active, rate: Math.round((active / day) * 100) };
+}
+
+// ---- Value Score (trilha profissional / Business Master) ----
+//
+// Não é previsão de salário nem avaliação externa — é uma leitura de quanto
+// valor profissional/intelectual o usuário está desenvolvendo, combinando as
+// áreas Profissional e Conhecimento (já existentes) com a autoaplicação de
+// conceitos do Business Master. Mesmo princípio de fatores ausentes ignorados
+// usado no Health Score.
+export function computeValueScore(state) {
+  const factors = [];
+
+  const prof = computeAreaScore(state, 'profissional');
+  if (prof != null) factors.push(prof);
+
+  const know = computeAreaScore(state, 'conhecimento');
+  if (know != null) factors.push(know);
+
+  const applied = (state.businessConcepts && state.businessConcepts.appliedIds) ? state.businessConcepts.appliedIds.length : 0;
+  if (applied > 0) factors.push(Math.round(Math.min(1, applied / BUSINESS_CONCEPTS.length) * 100));
 
   if (!factors.length) return null;
   return Math.round(factors.reduce((a, b) => a + b, 0) / factors.length);
