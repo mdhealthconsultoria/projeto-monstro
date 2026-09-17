@@ -113,6 +113,40 @@ export function journeyPhaseForDay(day) {
   return JOURNEY_PHASES.find(p => day >= p.range[0] && day <= p.range[1]) || JOURNEY_PHASES[JOURNEY_PHASES.length - 1];
 }
 
+// Sistema de Conhecimento: cada item (matéria/livro/curso/artigo) avança por
+// um fluxo de domínio fixo — autoavançado pelo usuário, não é uma prova
+// automática (não inventamos avaliação nenhuma sobre o que ele realmente sabe).
+export const KNOWLEDGE_TYPES = [
+  { key: 'materia', label: 'Matéria' },
+  { key: 'livro', label: 'Livro' },
+  { key: 'curso', label: 'Curso' },
+  { key: 'artigo', label: 'Artigo' },
+  { key: 'outro', label: 'Outro' },
+];
+
+export function knowledgeTypeInfo(key) {
+  return KNOWLEDGE_TYPES.find(t => t.key === key) || KNOWLEDGE_TYPES[KNOWLEDGE_TYPES.length - 1];
+}
+
+export const KNOWLEDGE_STAGES = [
+  { key: 'estudar', label: 'Estudar' },
+  { key: 'testar', label: 'Testar' },
+  { key: 'aplicar', label: 'Aplicar' },
+  { key: 'revisar', label: 'Revisar' },
+  { key: 'ensinar', label: 'Ensinar / Produzir' },
+  { key: 'dominar', label: 'Dominar' },
+];
+
+export function knowledgeStageIndex(key) {
+  const i = KNOWLEDGE_STAGES.findIndex(s => s.key === key);
+  return i === -1 ? 0 : i;
+}
+
+export function nextKnowledgeStage(key) {
+  const i = knowledgeStageIndex(key);
+  return KNOWLEDGE_STAGES[Math.min(i + 1, KNOWLEDGE_STAGES.length - 1)].key;
+}
+
 export function defaultState() {
   return {
     version: 2,
@@ -149,6 +183,7 @@ export function defaultState() {
     },
     journey90: { startDate: null },
     businessConcepts: { appliedIds: [] }, // Business Master — autoavaliação, sem nota/prova
+    knowledgeItems: {}, // { id, title, type, stage, sessions: [{date, minutes, note}], createdAt, archived }
     lastModifiedAt: null,
   };
 }

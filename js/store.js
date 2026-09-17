@@ -23,6 +23,7 @@ function hasRealData(state) {
   if (state.focus && state.focus.sessions && state.focus.sessions.length) return true;
   if (state.journey90 && state.journey90.startDate) return true;
   if (state.businessConcepts && state.businessConcepts.appliedIds && state.businessConcepts.appliedIds.length) return true;
+  if (state.knowledgeItems && Object.keys(state.knowledgeItems).length) return true;
   return false;
 }
 

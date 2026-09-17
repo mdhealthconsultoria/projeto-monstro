@@ -1,4 +1,4 @@
-import { TOTAL_DAYS, typeForDay, isDayCompleted, EXERCISES_BY_TYPE, LIFE_AREAS, JOURNEY_TOTAL_DAYS } from './model.js';
+import { TOTAL_DAYS, typeForDay, isDayCompleted, EXERCISES_BY_TYPE, LIFE_AREAS, JOURNEY_TOTAL_DAYS, KNOWLEDGE_STAGES, knowledgeStageIndex } from './model.js';
 import { habitStats, habitCheckinsFor, dateKey } from './habits.js';
 import { BUSINESS_CONCEPTS } from './businessLibrary.js';
 
@@ -243,6 +243,16 @@ function physicalWorkoutBonus(state) {
   return Math.round(Math.min(1, workoutsCompleted / TOTAL_DAYS) * 100);
 }
 
+// Contribuição extra da área Conhecimento a partir do sistema de domínio
+// (estudar→testar→aplicar→revisar→ensinar→dominar) — mesma ideia do bônus
+// de treino em Físico: soma como mais um contribuinte, não substitui hábitos.
+function knowledgeProgressBonus(state) {
+  const items = Object.values(state.knowledgeItems || {}).filter(i => !i.archived);
+  if (!items.length) return null;
+  const scores = items.map(i => Math.round(((knowledgeStageIndex(i.stage) + 1) / KNOWLEDGE_STAGES.length) * 100));
+  return Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+}
+
 // null = área sem nenhum hábito ativo ainda (não é 0 — 0 seria "começou e
 // está indo mal"; null é "ainda não começou"). A UI decide como mostrar isso.
 export function computeAreaScore(state, areaKey) {
@@ -250,6 +260,10 @@ export function computeAreaScore(state, areaKey) {
   const scores = habitsInArea.map(h => computeHabitScore(state, h));
   if (areaKey === 'fisico') {
     const bonus = physicalWorkoutBonus(state);
+    if (bonus != null) scores.push(bonus);
+  }
+  if (areaKey === 'conhecimento') {
+    const bonus = knowledgeProgressBonus(state);
     if (bonus != null) scores.push(bonus);
   }
   if (!scores.length) return null;

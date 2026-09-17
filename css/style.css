@@ -961,3 +961,20 @@ a { color: var(--orange); }
 .concept-item-desc { color: var(--text-dim); font-size: 13px; line-height: 1.4; }
 .concept-item-exercise { color: var(--text-faint); font-size: 11.5px; line-height: 1.4; font-style: italic; }
 
+/* ---------- Conhecimento ---------- */
+.knowledge-item {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.knowledge-item-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.knowledge-item-title { font-weight: 700; font-size: 14.5px; }
+.knowledge-stage-dots { display: flex; gap: 5px; }
+.knowledge-stage-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--bg-elevated); border: 1px solid var(--border); }
+.knowledge-stage-dot.filled { background: var(--orange); border-color: var(--orange); }
+.knowledge-item-meta { color: var(--text-faint); font-size: 11.5px; }
+
