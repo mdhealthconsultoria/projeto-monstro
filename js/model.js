@@ -62,6 +62,22 @@ export function isDayStarted(dayRec) {
   return !!(dayRec && dayRec.startedAt);
 }
 
+// Life areas — the six dimensions a user can choose to evolve in. Areas the
+// user never activated are excluded from the overall Montro Score instead of
+// dragging it down (see logic.js#computeMontroScore).
+export const LIFE_AREAS = [
+  { key: 'mente', label: 'Mente', icon: 'moon', color: '#7c9cff', description: 'Foco, calma e clareza mental.' },
+  { key: 'fisico', label: 'Físico', icon: 'bolt', color: '#ff7a1a', description: 'Movimento, força e condicionamento.' },
+  { key: 'saude', label: 'Saúde', icon: 'heart', color: '#e5484d', description: 'Sono, alimentação e hidratação.' },
+  { key: 'profissional', label: 'Profissional', icon: 'briefcase', color: '#a89f92', description: 'Trabalho e geração de valor.' },
+  { key: 'conhecimento', label: 'Conhecimento', icon: 'book', color: '#4fae6a', description: 'Estudo, leitura e novas habilidades.' },
+  { key: 'social', label: 'Social', icon: 'share', color: '#4fb8e0', description: 'Comunidade e relacionamentos.' },
+];
+
+export function areaFor(key) {
+  return LIFE_AREAS.find(a => a.key === key) || null;
+}
+
 export function defaultState() {
   return {
     version: 2,
@@ -76,6 +92,7 @@ export function defaultState() {
     bodyMetrics: { heightCm: null, weights: [] },
     breathing: { reminderTime: null, lastCompletedAt: null, sessions: [] },
     bodyDiaryConsent: false,
+    activeAreas: [],
     lastModifiedAt: null,
   };
 }

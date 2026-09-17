@@ -851,3 +851,66 @@ a { color: var(--orange); }
 @media (prefers-reduced-motion: reduce) {
   .landing-screen, .landing-hero::before, .breath-orb { animation: none !important; transition: none !important; }
 }
+
+/* ---------- Áreas da vida / Montro Score ---------- */
+.montro-hero {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 22px 18px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.montro-hero-num { font-family: var(--font-display); font-size: 40px; color: var(--orange-2); line-height: 1; }
+.montro-hero-label { font-size: 12px; letter-spacing: .06em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 2px; }
+.montro-hero-sub { color: var(--text-faint); font-size: 12px; margin-top: 4px; }
+
+.area-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+.area-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 14px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: var(--text);
+}
+.area-card.is-inactive { opacity: .5; }
+.area-card-score { font-family: var(--font-display); font-size: 22px; line-height: 1; }
+.area-card-label { font-size: 13px; font-weight: 700; }
+.area-card-sub { font-size: 11px; color: var(--text-faint); text-align: center; }
+
+.evidence-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11px; font-weight: 700;
+  padding: 3px 9px; border-radius: 999px;
+  background: var(--bg-elevated);
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+}
+
+.library-item {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.library-item-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.library-item-title { font-weight: 700; font-size: 14.5px; }
+.library-item-desc { color: var(--text-dim); font-size: 13px; line-height: 1.4; }
+.library-item-source { color: var(--text-faint); font-size: 11px; line-height: 1.4; }
+
+@media (min-width: 560px) {
+  .area-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .area-card, .montro-hero { transition: none !important; }
+}

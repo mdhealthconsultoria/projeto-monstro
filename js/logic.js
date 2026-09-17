@@ -1,4 +1,5 @@
-import { TOTAL_DAYS, typeForDay, isDayCompleted, EXERCISES_BY_TYPE } from './model.js';
+import { TOTAL_DAYS, typeForDay, isDayCompleted, EXERCISES_BY_TYPE, LIFE_AREAS } from './model.js';
+import { habitStats, habitCheckinsFor, dateKey } from './habits.js';
 
 // ---- Aggregation of a single exercise's sets ----
 export function aggregateExercise(exerciseKey, exerciseData) {
@@ -175,4 +176,91 @@ export function formatSignedNumber(n) {
 export function formatSignedPercent(n) {
   const rounded = Math.round(n * 10) / 10;
   return (rounded > 0 ? '+' : '') + rounded + '%';
+}
+
+// ---- Life-areas scoring (MONTRO EVOLUTION) ----
+//
+// Pesos originais pedidos: 40% execução da meta, 25% consistência, 20%
+// frequência, 10% streak, 5% reflexão/autoavaliação. Não existe tela de
+// reflexão por hábito hoje, então os 5% foram redistribuídos
+// proporcionalmente entre os outros quatro — deliberado, não esquecido.
+const HABIT_SCORE_WEIGHTS = { goal: 0.42, consistency: 0.26, frequency: 0.21, streak: 0.11 };
+const STREAK_SCORE_CAP_DAYS = 14;
+const CONSISTENCY_WINDOW_DAYS = 30;
+
+// Fração de dias AGENDADOS (respeitando daysOfWeek) nos últimos N dias em que
+// houve check-in — janela recente, distinta de "frequência" (histórico todo).
+function habitConsistency(state, habit, windowDays = CONSISTENCY_WINDOW_DAYS) {
+  const created = habit.createdAt ? new Date(habit.createdAt) : null;
+  const checkins = habitCheckinsFor(state, habit.id);
+  const daySet = new Set(checkins.map(c => c.date));
+  let scheduled = 0, done = 0;
+  const cursor = new Date();
+  for (let i = 0; i < windowDays; i++) {
+    if (created && cursor < created) break;
+    const isScheduled = (habit.frequency === 'custom' || habit.frequency === 'weekly')
+      ? (habit.daysOfWeek || []).includes(cursor.getDay())
+      : true;
+    if (isScheduled) {
+      scheduled++;
+      if (daySet.has(dateKey(cursor))) done++;
+    }
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  return scheduled ? done / scheduled : 0;
+}
+
+// Taxa de check-ins sobre o tempo de vida inteiro do hábito (desde criado) —
+// mais lenta pra reagir que a consistência, mostra o padrão de longo prazo.
+function habitFrequencyRate(state, habit) {
+  const checkins = habitCheckinsFor(state, habit.id);
+  if (!habit.createdAt) return 0;
+  const daysSince = Math.max(1, Math.round((new Date() - new Date(habit.createdAt)) / 86400000) + 1);
+  return Math.min(1, checkins.length / daysSince);
+}
+
+// 0-100. Recalculado do zero a cada chamada — mesmo princípio de computeAll.
+export function computeHabitScore(state, habit) {
+  const stats = habitStats(state, habit);
+  const goal = stats.progress;
+  const consistency = habitConsistency(state, habit);
+  const frequency = habitFrequencyRate(state, habit);
+  const streak = Math.min(1, stats.streak / STREAK_SCORE_CAP_DAYS);
+  const score01 =
+    goal * HABIT_SCORE_WEIGHTS.goal +
+    consistency * HABIT_SCORE_WEIGHTS.consistency +
+    frequency * HABIT_SCORE_WEIGHTS.frequency +
+    streak * HABIT_SCORE_WEIGHTS.streak;
+  return Math.round(score01 * 100);
+}
+
+// O desafio de 30 dias soma como um contribuinte extra da área Físico, além
+// dos hábitos de exercício — reaproveita computeAll(), não duplica lógica.
+function physicalWorkoutBonus(state) {
+  const { workoutsCompleted } = computeAll(state);
+  if (!workoutsCompleted) return null;
+  return Math.round(Math.min(1, workoutsCompleted / TOTAL_DAYS) * 100);
+}
+
+// null = área sem nenhum hábito ativo ainda (não é 0 — 0 seria "começou e
+// está indo mal"; null é "ainda não começou"). A UI decide como mostrar isso.
+export function computeAreaScore(state, areaKey) {
+  const habitsInArea = Object.values(state.habits).filter(h => h.active && h.area === areaKey);
+  const scores = habitsInArea.map(h => computeHabitScore(state, h));
+  if (areaKey === 'fisico') {
+    const bonus = physicalWorkoutBonus(state);
+    if (bonus != null) scores.push(bonus);
+  }
+  if (!scores.length) return null;
+  return Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+}
+
+// Média só sobre as áreas que o usuário ativou — uma área nunca escolhida
+// nunca derruba a pontuação geral. Se ele não escolheu nenhuma ainda, usa
+// todas as áreas como fallback (evita "score sempre zero" antes de configurar).
+export function computeMontroScore(state) {
+  const active = (state.activeAreas && state.activeAreas.length) ? state.activeAreas : LIFE_AREAS.map(a => a.key);
+  const scored = active.map(key => computeAreaScore(state, key)).filter(s => s != null);
+  if (!scored.length) return 0;
+  return Math.round(scored.reduce((a, b) => a + b, 0) / scored.length);
 }

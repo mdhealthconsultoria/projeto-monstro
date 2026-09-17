@@ -21,6 +21,7 @@ import { renderChecklist } from './views/checklist.js';
 import { renderLanding } from './views/landing.js';
 import { renderComoUsar } from './views/comoUsar.js';
 import { renderRespirar } from './views/respirar.js';
+import { renderAreas } from './views/areas.js';
 
 const TABS = [
   { id: 'hoje', label: 'Hoje', icon: 'today', render: renderHoje },
@@ -50,6 +51,7 @@ const SUB_SCREENS = {
   minhaBase: { render: renderMinhaBase, activeTab: 'evoluir' },
   checklist: { render: renderChecklist, activeTab: 'evoluir' },
   respirar: { render: renderRespirar, activeTab: 'evoluir' },
+  areas: { render: renderAreas, activeTab: 'evoluir' },
   comunidadeDetalhe: { render: renderComunidadeDetalhe, activeTab: 'comunidades' },
   desafioDetalhe: { render: renderDesafioDetalhe, activeTab: 'comunidades' },
 };

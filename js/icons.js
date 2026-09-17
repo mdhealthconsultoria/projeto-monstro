@@ -1,4 +1,6 @@
 // Consistent stroke-based SVG icon set (24x24, no emoji used anywhere in the UI).
+import { prefersReducedMotion } from './utils.js';
+
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
 function svgEl(tag, attrs) {
@@ -54,7 +56,13 @@ const PATHS = {
 // The Skeelo Evolution brand mark: a three-level stepped pyramid — Corpo
 // (base), Mente (middle), Comunidade (apex). `levels` lights up each band
 // independently (e.g. to show which pillar has progress today).
-export function pyramidMark({ size = 64, levels = [true, true, true], className = '' } = {}) {
+// fillPercent (0-100), when provided, switches from the 3 discrete bands to a
+// continuous "liquid rising" fill — used by the life-areas evolution pyramids.
+// The fill animates in via SMIL <animate> (not CSS transition) because views
+// fully remount on every redraw, so there's no persistent DOM node for a CSS
+// transition to animate between old/new state — this gives the "rises on
+// screen" feel on every draw() instead, which is the practical equivalent.
+export function pyramidMark({ size = 64, levels = [true, true, true], fillPercent = null, className = '' } = {}) {
   const svg = document.createElementNS(SVG_NS, 'svg');
   svg.setAttribute('viewBox', '0 0 100 100');
   svg.setAttribute('width', size);
@@ -74,6 +82,55 @@ export function pyramidMark({ size = 64, levels = [true, true, true], className 
       return `50,${apexY} ${50 + halfWidthAt(f1)},${y1} ${50 - halfWidthAt(f1)},${y1}`;
     }
     return `${50 - halfWidthAt(f0)},${y0} ${50 + halfWidthAt(f0)},${y0} ${50 + halfWidthAt(f1)},${y1} ${50 - halfWidthAt(f1)},${y1}`;
+  }
+
+  if (fillPercent != null) {
+    const frac = Math.max(0, Math.min(1, fillPercent / 100));
+    const fillY = baseY - (baseY - apexY) * frac;
+    const outline = `50,${apexY} ${50 + halfWidthAt(1)},${baseY} ${50 - halfWidthAt(1)},${baseY}`;
+    const clipId = `pyramid-clip-${Math.random().toString(36).slice(2, 9)}`;
+
+    svg.appendChild(svgEl('polygon', {
+      points: outline, fill: 'none', stroke: 'currentColor', 'stroke-width': '3',
+      'stroke-linejoin': 'round', opacity: '0.35',
+    }));
+
+    const defs = svgEl('defs', {});
+    const clip = svgEl('clipPath', { id: clipId });
+    const clipRect = svgEl('rect', { x: '0', width: '100' });
+    if (!prefersReducedMotion()) {
+      clipRect.setAttribute('y', String(baseY));
+      clipRect.setAttribute('height', '0');
+      const easing = '0.22 1 0.36 1';
+      clipRect.appendChild(svgEl('animate', {
+        attributeName: 'y', values: `${baseY};${fillY}`, keyTimes: '0;1', dur: '0.9s',
+        begin: '0.05s', fill: 'freeze', calcMode: 'spline', keySplines: easing,
+      }));
+      clipRect.appendChild(svgEl('animate', {
+        attributeName: 'height', values: `0;${baseY - fillY}`, keyTimes: '0;1', dur: '0.9s',
+        begin: '0.05s', fill: 'freeze', calcMode: 'spline', keySplines: easing,
+      }));
+    } else {
+      clipRect.setAttribute('y', String(fillY));
+      clipRect.setAttribute('height', String(baseY - fillY));
+    }
+    clip.appendChild(clipRect);
+    defs.appendChild(clip);
+    svg.appendChild(defs);
+
+    svg.appendChild(svgEl('polygon', {
+      points: outline, fill: 'currentColor', 'clip-path': `url(#${clipId})`,
+    }));
+
+    [1 / 3, 2 / 3].forEach(f => {
+      const y = yAt(f);
+      svg.appendChild(svgEl('line', {
+        x1: String(50 - halfWidthAt(f)), y1: String(y), x2: String(50 + halfWidthAt(f)), y2: String(y),
+        stroke: 'currentColor', 'stroke-width': '1.5', opacity: '0.3',
+      }));
+    });
+
+    return svg;
   }
 
   // [comunidade(apex), mente(mid), corpo(base)] — drawn top to bottom.

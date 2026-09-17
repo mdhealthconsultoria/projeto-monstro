@@ -1,5 +1,5 @@
 import { h, mount } from '../utils.js';
-import { icon } from '../icons.js';
+import { icon, pyramidMark } from '../icons.js';
 import { store } from '../store.js';
 import { TOTAL_DAYS } from '../model.js';
 
@@ -18,7 +18,7 @@ function hubCard({ iconName, title, subtitle, meta, onClick }) {
 export function renderEvoluir(viewEl, params, nav) {
   function draw() {
     const state = store.state;
-    const { computed } = store.derived;
+    const { computed, montroScore } = store.derived;
 
     const habitCount = Object.values(state.habits).filter(h => h.active).length;
     const taskCount = state.dailyTasks.filter(t => !t.archived).length;
@@ -28,6 +28,13 @@ export function renderEvoluir(viewEl, params, nav) {
       h('p', { className: 'text-dim' }, 'Corpo, mente e rotina — tudo o que constrói a sua base.'),
 
       h('div', { className: 'stack' },
+        hubCard({
+          iconName: 'pyramid',
+          title: 'Minha Evolução',
+          subtitle: 'Pontuação por área da vida + biblioteca de hábitos',
+          meta: String(montroScore),
+          onClick: () => nav.navigateTo('areas'),
+        }),
         hubCard({
           iconName: 'today',
           title: 'Treino de 30 dias',

@@ -4,19 +4,26 @@
 import { uid, todayISO } from './utils.js';
 
 export const HABIT_CATEGORIES = [
-  { key: 'ingles', label: 'Inglês', icon: 'book', color: '#ff7a1a' },
-  { key: 'leitura', label: 'Leitura', icon: 'book', color: '#4fae6a' },
-  { key: 'estudos', label: 'Estudos', icon: 'edit', color: '#ffb347' },
-  { key: 'oracao', label: 'Oração', icon: 'heart', color: '#e5484d' },
-  { key: 'sono', label: 'Sono', icon: 'moon', color: '#7c9cff' },
-  { key: 'alimentacao', label: 'Alimentação', icon: 'target', color: '#4fae6a' },
-  { key: 'trabalho', label: 'Trabalho', icon: 'briefcase', color: '#a89f92' },
-  { key: 'hidratacao', label: 'Hidratação', icon: 'droplet', color: '#4fb8e0' },
-  { key: 'personalizado', label: 'Personalizado', icon: 'target', color: '#ff7a1a' },
+  { key: 'ingles', label: 'Inglês', icon: 'book', color: '#ff7a1a', area: 'conhecimento' },
+  { key: 'leitura', label: 'Leitura', icon: 'book', color: '#4fae6a', area: 'conhecimento' },
+  { key: 'estudos', label: 'Estudos', icon: 'edit', color: '#ffb347', area: 'conhecimento' },
+  { key: 'exercicio', label: 'Exercício', icon: 'bolt', color: '#ff7a1a', area: 'fisico' },
+  { key: 'oracao', label: 'Oração', icon: 'heart', color: '#e5484d', area: 'mente' },
+  { key: 'sono', label: 'Sono', icon: 'moon', color: '#7c9cff', area: 'saude' },
+  { key: 'alimentacao', label: 'Alimentação', icon: 'target', color: '#4fae6a', area: 'saude' },
+  { key: 'trabalho', label: 'Trabalho', icon: 'briefcase', color: '#a89f92', area: 'profissional' },
+  { key: 'hidratacao', label: 'Hidratação', icon: 'droplet', color: '#4fb8e0', area: 'saude' },
+  { key: 'personalizado', label: 'Personalizado', icon: 'target', color: '#ff7a1a', area: 'mente' },
 ];
 
 export function categoryFor(key) {
   return HABIT_CATEGORIES.find(c => c.key === key) || HABIT_CATEGORIES[HABIT_CATEGORIES.length - 1];
+}
+
+// Default area a habit belongs to, from its category — callers (e.g. the
+// habit library) may still set an explicit `area` on newHabit() to override.
+export function areaForCategory(key) {
+  return categoryFor(key).area;
 }
 
 export const WEEKDAYS = [
@@ -32,12 +39,13 @@ export function checkinId(habitId, day) {
   return `${habitId}:${day}`;
 }
 
-export function newHabit({ title, category = 'personalizado', icon, frequency = 'daily', daysOfWeek = [0, 1, 2, 3, 4, 5, 6], goalDays = 30, reminder = null, color, description = '', templateId = null }) {
+export function newHabit({ title, category = 'personalizado', area = null, icon, frequency = 'daily', daysOfWeek = [0, 1, 2, 3, 4, 5, 6], goalDays = 30, reminder = null, color, description = '', templateId = null, mechanism = null, evidenceLevel = null, source = null }) {
   const cat = categoryFor(category);
   return {
     id: uid(),
     title: title.trim(),
     category,
+    area: area || cat.area,
     icon: icon || cat.icon,
     frequency,
     daysOfWeek,
@@ -45,6 +53,11 @@ export function newHabit({ title, category = 'personalizado', icon, frequency = 
     reminder,
     color: color || cat.color,
     description,
+    // Preenchidos quando o hábito vem da biblioteca com evidência (habitLibrary.js);
+    // null para hábitos personalizados — a tela de hábito só mostra o selo quando existe.
+    mechanism,
+    evidenceLevel,
+    source,
     active: true,
     createdAt: todayISO(),
     templateId,
@@ -62,6 +75,23 @@ export const ENGLISH_90_TEMPLATE = {
 
 export function createEnglish90Habit() {
   return newHabit({ ...ENGLISH_90_TEMPLATE });
+}
+
+// Builds a real habit from a habitLibrary.js entry — same construction path
+// as createEnglish90Habit(), just parameterized over the library item.
+export function createLibraryHabit(libItem) {
+  return newHabit({
+    title: libItem.title,
+    category: libItem.category,
+    area: libItem.area,
+    frequency: libItem.frequency,
+    daysOfWeek: libItem.daysOfWeek,
+    description: libItem.description,
+    mechanism: libItem.mechanism,
+    evidenceLevel: libItem.evidenceLevel,
+    source: libItem.source,
+    templateId: libItem.templateId || `lib:${libItem.id}`,
+  });
 }
 
 export const DEFAULT_CHECKLIST_ITEMS = [

@@ -1,6 +1,6 @@
 import { loadState, saveState, clearStateForUser } from './db.js';
-import { defaultState, emptyDay, typeForDay, levelForXP } from './model.js';
-import { computeAll, computeStreaks, currentDayNumber } from './logic.js';
+import { defaultState, emptyDay, typeForDay, levelForXP, LIFE_AREAS } from './model.js';
+import { computeAll, computeStreaks, currentDayNumber, computeAreaScore, computeMontroScore } from './logic.js';
 import { todayISO } from './utils.js';
 import { supabaseClient } from './services/supabaseClient.js';
 
@@ -79,6 +79,11 @@ class Store {
     };
     this.derived.streaks = computeStreaks(this.state, this.derived.currentDay);
     this.derived.level = levelForXP(this.derived.computed.totalXP);
+
+    const areaScores = {};
+    for (const area of LIFE_AREAS) areaScores[area.key] = computeAreaScore(this.state, area.key);
+    this.derived.areaScores = areaScores;
+    this.derived.montroScore = computeMontroScore(this.state);
   }
 
   subscribe(fn) {
