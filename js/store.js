@@ -5,6 +5,7 @@ import { todayISO } from './utils.js';
 import { supabaseClient } from './services/supabaseClient.js';
 import { deleteAllPhotosCloud } from './services/photosCloud.js';
 import { computeEarnedBadgeIds } from './badges.js';
+import { syncMyBenchmarkStats } from './services/benchmark.js';
 
 // Distinguishes an untouched row (the signup trigger inserts a bare `{}`)
 // from one the app has actually written to at least once — checking only
@@ -129,6 +130,14 @@ class Store {
         .upsert({ user_id: this.userId, state: snapshot }, { onConflict: 'user_id' });
       if (error) throw error;
       this.syncStatus = 'saved';
+      // Melhor esforço, não bloqueia o fluxo principal de sincronização —
+      // ver benchmark.js sobre por que o cliente envia o score já pronto.
+      syncMyBenchmarkStats(
+        this.userId,
+        snapshot.healthProfile && snapshot.healthProfile.birthYear,
+        this.derived.montroScore,
+        (snapshot.activeAreas || []).length > 0
+      );
     } catch (err) {
       this.syncStatus = navigator.onLine ? 'error' : 'offline';
       console.error('Falha ao sincronizar com a nuvem', err);

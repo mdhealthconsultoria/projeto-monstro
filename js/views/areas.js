@@ -5,6 +5,7 @@ import { toast } from '../ui.js';
 import { LIFE_AREAS, areaFor } from '../model.js';
 import { libraryItemsForArea, evidenceInfo } from '../habitLibrary.js';
 import { createLibraryHabit, habitStats, isHabitCheckedToday, checkinId, dateKey } from '../habits.js';
+import { ageBracketForBirthYear, getMontroBenchmark } from '../services/benchmark.js';
 
 function activateArea(areaKey) {
   store.mutate(s => {
@@ -20,7 +21,32 @@ function toggleAreaActive(areaKey) {
 }
 
 function renderOverview(viewEl, nav) {
+  let destroyed = false;
+  let benchmark = null;
+
+  async function loadBenchmark() {
+    const bracket = ageBracketForBirthYear(store.state.healthProfile && store.state.healthProfile.birthYear);
+    if (!bracket) return;
+    const result = await getMontroBenchmark(bracket);
+    if (destroyed) return;
+    benchmark = result;
+    draw();
+  }
+
+  function benchmarkCard() {
+    if (!benchmark) return null;
+    return h('div', { className: 'card card-tight row-between' },
+      h('div', {},
+        h('div', { style: { fontWeight: 700, fontSize: '13px' } }, 'Pessoas da sua faixa etária'),
+        h('div', { className: 'text-faint', style: { fontSize: '11px' } },
+          benchmark.available ? `Média anônima de ${benchmark.sampleSize} pessoas` : 'Ainda não há gente suficiente nessa faixa pra comparar')
+      ),
+      benchmark.available ? h('span', { style: { fontFamily: 'var(--font-display)', fontSize: '20px', color: 'var(--orange-2)' } }, benchmark.average) : null
+    );
+  }
+
   function draw() {
+    if (destroyed) return;
     const state = store.state;
     const { montroScore, areaScores } = store.derived;
 
@@ -55,11 +81,14 @@ function renderOverview(viewEl, nav) {
             : 'Ative pelo menos uma área abaixo para começar.')
         )
       ),
+      benchmarkCard(),
       h('div', { className: 'area-grid' }, cards)
     ));
   }
   draw();
-  return store.subscribe(draw);
+  loadBenchmark();
+  const unsub = store.subscribe(draw);
+  return () => { destroyed = true; unsub(); };
 }
 
 function habitRow(state, habit) {

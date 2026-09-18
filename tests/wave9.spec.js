@@ -10,20 +10,20 @@ async function clickTo(page, clickLocator, expectLocator) {
   }).toPass({ timeout: 25000, intervals: [300, 500, 1000] });
 }
 
-test.describe('Onda 3 — Sistema de Conhecimento', () => {
-  test('cadastro -> criar item -> avançar etapa -> registrar sessão -> score sobe -> excluir', async ({ page }) => {
+test.describe('Onda 9 — Benchmark anônimo por idade (melhor esforço)', () => {
+  test('cadastro -> informar ano de nascimento -> Minha Evolução não quebra (com ou sem tabela)', async ({ page }) => {
     test.setTimeout(60000);
     const errors = [];
     page.on('pageerror', err => errors.push(String(err)));
     page.on('console', msg => { if (msg.type() === 'error') errors.push(msg.text()); });
 
-    const email = `qa-wave3-${Date.now()}@example.com`;
+    const email = `qa-wave9-${Date.now()}@example.com`;
     const password = 'SenhaForte123!';
 
     await page.goto(BASE_URL);
     await page.getByRole('button', { name: 'COMEÇAR MINHA EVOLUÇÃO' }).click();
 
-    await page.locator('input[type="text"]').first().fill('QA Wave3');
+    await page.locator('input[type="text"]').first().fill('QA Wave9');
     await page.locator('input[type="email"]').fill(email);
     await page.locator('input[type="password"]').nth(0).fill(password);
     await page.locator('input[type="password"]').nth(1).fill(password);
@@ -47,52 +47,31 @@ test.describe('Onda 3 — Sistema de Conhecimento', () => {
     const navEvoluir = page.getByRole('navigation').getByRole('button', { name: 'Evoluir' });
     await expect(navEvoluir).toBeVisible({ timeout: 10000 });
 
-    // ---- Conhecimento ----
+    // Ativa a área Saúde e informa o ano de nascimento (necessário pro benchmark).
     await clickTo(page, navEvoluir, page.getByText('Minha Evolução'));
     await clickTo(page, page.getByText('Minha Evolução'), page.getByRole('heading', { name: 'Minha Evolução' }));
-    await clickTo(page, page.getByText('Conhecimento', { exact: true }), page.getByText('PONTUAÇÃO DA ÁREA'));
+    await clickTo(page, page.getByText('Saúde', { exact: true }), page.getByText('PONTUAÇÃO DA ÁREA'));
+    await clickTo(page, page.getByText('Perfil de saúde e Health Score'), page.getByText('PERFIL DE SAÚDE'));
+    await page.locator('input[type="number"]').first().fill('1990');
+    await page.locator('input[type="number"]').first().blur();
+    await page.waitForTimeout(300);
+    await page.locator('select').nth(1).selectOption('no'); // não fumante -> gera um health score
+    await page.waitForTimeout(500); // dá tempo pro store.mutate() persistir/sincronizar o birthYear
 
-    const areaScoreNum = page.locator('.montro-hero-num').first();
-    await expect(areaScoreNum).toHaveText('—');
-
-    await clickTo(page, page.getByText('Sistema de domínio'), page.getByRole('heading', { name: 'Conhecimento' }));
-
-    await page.locator('input[type="text"]').fill('Inglês avançado');
-    await page.getByRole('button', { name: 'Adicionar' }).click({ force: true });
-    await expect(page.getByText('Inglês avançado')).toBeVisible();
-    await expect(page.locator('.knowledge-item').first().getByText('Estudar', { exact: true })).toBeVisible();
-
-    const card = page.locator('.knowledge-item').first();
-    await clickTo(page, card.getByRole('button', { name: 'Avançar etapa' }), card.getByText('Testar', { exact: true }));
-
-    // Pequena pausa: a mudança de etapa dispara store.mutate() (até 3 notify()
-    // assíncronos via pushToCloud) — preencher o input antes disso terminar
-    // de assentar arrisca um redraw resetar o valor digitado antes do clique.
-    await page.waitForTimeout(600);
-    await card.locator('input[type="number"]').fill('45');
-    await expect(async () => {
-      await card.getByRole('button', { name: 'Registrar sessão' }).click({ force: true });
-      await expect(card.getByText('1 sessão · 45 min registrados')).toBeVisible({ timeout: 3000 });
-    }).toPass({ timeout: 25000, intervals: [300, 500, 1000] });
-
-    // Voltar pra área e conferir que o score não é mais "—"
+    // Volta pra Minha Evolução — não deve travar nem gerar erro, com ou sem a tabela.
     await clickTo(page, page.getByRole('button', { name: 'Voltar' }), page.getByText('PONTUAÇÃO DA ÁREA'));
-    await expect(areaScoreNum).not.toHaveText('—');
+    await clickTo(page, page.getByRole('button', { name: 'Voltar' }), page.getByRole('heading', { name: 'Minha Evolução' }));
+    await expect(page.getByText('MONTRO SCORE')).toBeVisible();
+    await page.waitForTimeout(1500);
 
-    // Limpeza: excluir o item
-    await clickTo(page, page.getByText('Sistema de domínio'), page.getByRole('heading', { name: 'Conhecimento' }));
-    await page.locator('.knowledge-item').first().getByRole('button', { name: 'Excluir' }).click({ force: true });
-    await page.locator('#modal-root').getByRole('button', { name: 'Excluir' }).click();
-    await expect(page.getByText('Nenhum item ainda')).toBeVisible();
-
-    // Limpeza: apaga a conta de teste
-    await clickTo(page, page.getByRole('button', { name: 'Voltar' }), page.getByText('PONTUAÇÃO DA ÁREA'));
+    // Limpeza
+    await clickTo(page, page.getByRole('button', { name: 'Voltar' }), page.getByRole('heading', { name: 'Evoluir' }));
     const navPerfil = page.getByRole('navigation').getByRole('button', { name: 'Perfil' });
     await clickTo(page, navPerfil, page.locator('#view').getByRole('button', { name: 'Excluir conta' }));
     await page.locator('#view').getByRole('button', { name: 'Excluir conta' }).click();
     await page.locator('#modal-root').getByRole('button', { name: 'Excluir conta' }).click();
 
-    const realErrors = errors.filter(e => !/ResizeObserver|Failed to sync/i.test(e));
+    const realErrors = errors.filter(e => !/ResizeObserver|Failed to sync|Failed to load resource/i.test(e));
     expect(realErrors, `Console/page errors: ${realErrors.join('\n')}`).toEqual([]);
   });
 });
