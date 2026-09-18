@@ -29,6 +29,7 @@ import { renderValueScore } from './views/valueScore.js';
 import { renderConhecimento } from './views/conhecimento.js';
 import { renderAjuda } from './views/ajuda.js';
 import { renderNotificacoes } from './views/notificacoes.js';
+import { renderConquistas } from './views/conquistas.js';
 import { startScheduler, setPreferencesCache, getPreferencesCache } from './notifications.js';
 
 const TABS = [
@@ -67,6 +68,7 @@ const SUB_SCREENS = {
   conhecimento: { render: renderConhecimento, activeTab: 'evoluir' },
   ajuda: { render: renderAjuda, activeTab: 'perfil' },
   notificacoes: { render: renderNotificacoes, activeTab: 'perfil' },
+  conquistas: { render: renderConquistas, activeTab: 'perfil' },
   comunidadeDetalhe: { render: renderComunidadeDetalhe, activeTab: 'comunidades' },
   desafioDetalhe: { render: renderDesafioDetalhe, activeTab: 'comunidades' },
 };

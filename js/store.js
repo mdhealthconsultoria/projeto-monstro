@@ -4,6 +4,7 @@ import { computeAll, computeStreaks, currentDayNumber, computeAreaScore, compute
 import { todayISO } from './utils.js';
 import { supabaseClient } from './services/supabaseClient.js';
 import { deleteAllPhotosCloud } from './services/photosCloud.js';
+import { computeEarnedBadgeIds } from './badges.js';
 
 // Distinguishes an untouched row (the signup trigger inserts a bare `{}`)
 // from one the app has actually written to at least once — checking only
@@ -95,6 +96,7 @@ class Store {
     this.derived.journeyDay = currentJourneyDay(this.state);
     this.derived.journeyAdherence = computeJourneyAdherence(this.state);
     this.derived.valueScore = computeValueScore(this.state);
+    this.derived.earnedBadgeIds = computeEarnedBadgeIds(this.state, this.derived);
   }
 
   subscribe(fn) {

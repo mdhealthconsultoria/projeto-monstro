@@ -142,3 +142,32 @@ export function habitStats(state, habit, today = new Date()) {
 
   return { total, streak: cur, goalDays: habit.goalDays, progress: habit.goalDays ? Math.min(1, total / habit.goalDays) : 0 };
 }
+
+// Maior sequência já alcançada NA HISTÓRIA do hábito (diferente de
+// habitStats().streak, que é só a sequência atual e pode zerar). Usado
+// pra conquistas — uma vez alcançada, o recorde não desaparece se a
+// sequência atual quebrar depois.
+export function habitBestStreak(state, habit) {
+  const checkins = habitCheckinsFor(state, habit.id);
+  if (!checkins.length) return 0;
+  const daySet = new Set(checkins.map(c => c.date));
+  function isScheduled(date) {
+    if (habit.frequency !== 'custom' && habit.frequency !== 'weekly') return true;
+    return (habit.daysOfWeek || []).includes(date.getDay());
+  }
+  const dates = [...daySet].map(k => new Date(k)).sort((a, b) => a - b);
+  const cursor = new Date(dates[0]);
+  const last = dates[dates.length - 1];
+  let best = 0, current = 0;
+  while (cursor <= last) {
+    const k = dateKey(cursor);
+    if (daySet.has(k)) {
+      current++;
+      best = Math.max(best, current);
+    } else if (isScheduled(cursor)) {
+      current = 0;
+    }
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return best;
+}

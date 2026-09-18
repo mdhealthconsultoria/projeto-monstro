@@ -7,6 +7,7 @@ import { openTestModal } from './tests.js';
 import * as auth from '../services/auth.js';
 import { amIAdmin } from '../services/admin.js';
 import { setPreferencesCache } from '../notifications.js';
+import { BADGES } from '../badges.js';
 
 const SYNC_LABELS = {
   idle: { label: 'Aguardando', tone: 'pill-orange' },
@@ -259,6 +260,17 @@ export function renderPerfil(viewEl, params, nav) {
           h('div', { className: 'stat-box' }, h('div', { className: 'val' }, `${computed.workoutsCompleted}/${TOTAL_DAYS}`), h('div', { className: 'lbl' }, 'Treinos')),
           h('div', { className: 'stat-box' }, h('div', { className: 'val' }, streaks.best), h('div', { className: 'lbl' }, 'Maior seq.')),
           h('div', { className: 'stat-box' }, h('div', { className: 'val' }, computed.recordsBrokenTotal), h('div', { className: 'lbl' }, 'Recordes'))
+        )
+      ),
+
+      h('button', {
+        className: 'row-between card card-tight', style: { width: '100%', textAlign: 'left', color: 'var(--text)' },
+        onClick: () => nav.navigateTo('conquistas'),
+      },
+        h('div', { className: 'row' }, icon('trophy', { size: 20, className: 'text-dim' }), h('span', { style: { fontWeight: 700 } }, 'Conquistas')),
+        h('div', { className: 'row' },
+          h('span', { className: 'text-dim', style: { fontSize: '13px' } }, `${store.derived.earnedBadgeIds.length}/${BADGES.length}`),
+          icon('chevronRight', { size: 18, className: 'text-faint' })
         )
       ),
 
