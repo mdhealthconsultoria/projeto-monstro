@@ -1,4 +1,4 @@
-const CACHE_NAME = 'skeelo-cache-v16';
+const CACHE_NAME = 'skeelo-cache-v17';
 const PRECACHE_URLS = [
   './',
   './index.html',
@@ -57,6 +57,7 @@ const PRECACHE_URLS = [
   './js/views/notificacoes.js',
   './js/notifications.js',
   './js/services/photosCloud.js',
+  './js/services/moderation.js',
   './js/habitLibrary.js',
   './js/businessLibrary.js',
   './icons/icon-192.png',

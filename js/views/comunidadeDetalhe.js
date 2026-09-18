@@ -8,6 +8,10 @@ import {
   listChallenges, createChallenge,
   deleteCommunity,
 } from '../services/communities.js';
+import {
+  reportPost, reportMember, listReports, resolveReport,
+  myBlockedUsers, blockUser, unblockUser,
+} from '../services/moderation.js';
 
 const ACTION_TYPES = [
   { key: 'treino', label: 'Treino diário' },
@@ -88,6 +92,21 @@ function createChallengeModal(communityId, onCreated) {
   const close = openModal(content, { title: 'Novo desafio' });
 }
 
+function reportModal({ onSubmit }) {
+  const reasonInput = h('textarea', { placeholder: 'O que aconteceu? Seja específico — isso vai direto pra quem modera a comunidade.' });
+  const content = h('div', { className: 'stack' },
+    h('div', { className: 'field' }, h('label', {}, 'Motivo da denúncia'), reasonInput),
+    h('button', {
+      className: 'btn btn-primary btn-block',
+      onClick: async () => {
+        try { await onSubmit(reasonInput.value); close(); toast('Denúncia enviada', { iconName: 'check' }); }
+        catch (err) { toast(err.message, { iconName: 'alert' }); }
+      },
+    }, 'Enviar denúncia')
+  );
+  const close = openModal(content, { title: 'Denunciar' });
+}
+
 export function renderComunidadeDetalhe(viewEl, params, nav) {
   const communityId = params.communityId;
   let status = 'loading';
@@ -98,8 +117,11 @@ export function renderComunidadeDetalhe(viewEl, params, nav) {
   let members = [];
   let posts = [];
   let challenges = [];
+  let reports = [];
+  let blockedIds = new Set();
 
   const isStaff = () => membership && membership.status === 'active' && (membership.role === 'owner' || membership.role === 'admin');
+  const canModerate = () => membership && membership.status === 'active' && ['owner', 'admin', 'moderator'].includes(membership.role);
   const isActiveMember = () => membership && membership.status === 'active';
 
   async function load() {
@@ -110,11 +132,15 @@ export function renderComunidadeDetalhe(viewEl, params, nav) {
       if (!community) { status = 'notfound'; draw(); return; }
       membership = await myMembership(communityId);
       if (isActiveMember()) {
-        const [postsRes, challengesRes, membersRes] = await Promise.all([listPosts(communityId), listChallenges(communityId), listMembers(communityId)]);
+        const [postsRes, challengesRes, membersRes, blockedRes] = await Promise.all([
+          listPosts(communityId), listChallenges(communityId), listMembers(communityId), myBlockedUsers(),
+        ]);
         posts = postsRes; challenges = challengesRes; members = membersRes;
+        blockedIds = new Set(blockedRes.map(b => b.blocked_id));
         pending = isStaff() ? await listPendingRequests(communityId) : [];
+        reports = canModerate() ? await listReports(communityId) : [];
       } else {
-        posts = []; challenges = []; members = []; pending = [];
+        posts = []; challenges = []; members = []; pending = []; reports = []; blockedIds = new Set();
       }
       status = 'ready';
     } catch (err) {
@@ -199,6 +225,8 @@ export function renderComunidadeDetalhe(viewEl, params, nav) {
   function muralSection() {
     if (!isActiveMember()) return null;
     const postInput = h('textarea', { placeholder: 'Compartilhe algo com a comunidade...' });
+    const visiblePosts = posts.filter(p => !blockedIds.has(p.user_id));
+    const hiddenCount = posts.length - visiblePosts.length;
     return h('div', { className: 'stack' },
       h('div', { className: 'section-title' }, 'MURAL'),
       h('div', { className: 'field' }, postInput,
@@ -208,13 +236,20 @@ export function renderComunidadeDetalhe(viewEl, params, nav) {
           catch (err) { toast(err.message, { iconName: 'alert' }); }
         } }, 'Publicar')
       ),
-      posts.length ? posts.map(p => h('div', { className: 'card card-tight post-row' },
+      visiblePosts.length ? visiblePosts.map(p => h('div', { className: 'card card-tight post-row' },
         h('div', { className: 'post-meta' },
           h('strong', { style: { fontSize: '13px' } }, (p.profile && (p.profile.nickname || p.profile.name)) || 'Alguém'),
-          (isStaff() || (membership && p.user_id === membership.user_id)) ? h('button', { className: 'icon-btn icon-btn-sm', 'aria-label': 'Apagar', onClick: async () => { await deletePost(p.id); await load(); } }, icon('trash', { size: 14 })) : null
+          h('div', { className: 'row', style: { gap: '4px' } },
+            (membership && p.user_id !== membership.user_id) ? h('button', {
+              className: 'icon-btn icon-btn-sm', 'aria-label': 'Denunciar',
+              onClick: () => reportModal({ onSubmit: reason => reportPost(communityId, p.id, reason) }),
+            }, icon('alert', { size: 14 })) : null,
+            (isStaff() || (membership && p.user_id === membership.user_id)) ? h('button', { className: 'icon-btn icon-btn-sm', 'aria-label': 'Apagar', onClick: async () => { await deletePost(p.id); await load(); } }, icon('trash', { size: 14 })) : null
+          )
         ),
         h('p', {}, p.body)
-      )) : h('p', { className: 'text-faint' }, 'Nenhuma publicação ainda.')
+      )) : h('p', { className: 'text-faint' }, 'Nenhuma publicação ainda.'),
+      hiddenCount ? h('p', { className: 'text-faint', style: { fontSize: '11.5px' } }, `${hiddenCount} publicação${hiddenCount === 1 ? '' : 'ões'} oculta${hiddenCount === 1 ? '' : 's'} de gente que você bloqueou.`) : null
     );
   }
 
@@ -222,21 +257,59 @@ export function renderComunidadeDetalhe(viewEl, params, nav) {
     if (!isActiveMember() || !members.length) return null;
     return h('div', { className: 'stack' },
       h('div', { className: 'section-title' }, `MEMBROS (${members.length})`),
-      members.map(m => h('div', { className: 'card card-tight member-row' },
-        h('div', { className: 'avatar-circle sm' }, initials((m.profile && (m.profile.nickname || m.profile.name)) || '?')),
-        h('div', { className: 'grow' },
-          h('div', { className: 'member-name' }, (m.profile && (m.profile.nickname || m.profile.name)) || 'Alguém'),
-          h('div', { className: 'member-role' }, m.role === 'owner' ? 'Dona/dono' : m.role === 'admin' ? 'Admin' : m.role === 'moderator' ? 'Moderador' : 'Membro')
+      members.map(m => {
+        const isSelf = membership && m.user_id === membership.user_id;
+        const isBlocked = blockedIds.has(m.user_id);
+        return h('div', { className: 'card card-tight member-row' },
+          h('div', { className: 'avatar-circle sm' }, initials((m.profile && (m.profile.nickname || m.profile.name)) || '?')),
+          h('div', { className: 'grow' },
+            h('div', { className: 'member-name' }, (m.profile && (m.profile.nickname || m.profile.name)) || 'Alguém'),
+            h('div', { className: 'member-role' }, m.role === 'owner' ? 'Dona/dono' : m.role === 'admin' ? 'Admin' : m.role === 'moderator' ? 'Moderador' : 'Membro')
+          ),
+          m.role === 'owner' ? icon('crown', { size: 18, className: 'text-dim' }) : null,
+          !isSelf ? h('button', {
+            className: 'icon-btn icon-btn-sm', 'aria-label': 'Denunciar',
+            onClick: () => reportModal({ onSubmit: reason => reportMember(communityId, m.user_id, reason) }),
+          }, icon('alert', { size: 14 })) : null,
+          !isSelf ? h('button', {
+            className: 'icon-btn icon-btn-sm', 'aria-label': isBlocked ? 'Desbloquear' : 'Bloquear',
+            onClick: async () => {
+              try {
+                if (isBlocked) await unblockUser(m.user_id); else await blockUser(m.user_id);
+                toast(isBlocked ? 'Desbloqueado' : 'Bloqueado — publicações dessa pessoa ficam ocultas pra você', { iconName: 'check' });
+                load();
+              } catch (err) { toast(err.message, { iconName: 'alert' }); }
+            },
+          }, icon(isBlocked ? 'checkCircle' : 'lock', { size: 14 })) : null,
+          (isStaff() && m.role !== 'owner' && !isSelf) ? h('button', {
+            className: 'icon-btn icon-btn-sm', 'aria-label': 'Remover',
+            onClick: async () => {
+              const ok = await confirmDialog({ title: 'Remover membro', message: 'Remover essa pessoa da comunidade?', confirmLabel: 'Remover', danger: true });
+              if (!ok) return;
+              await removeMember(communityId, m.user_id); toast('Removido', { iconName: 'check' }); load();
+            },
+          }, icon('trash', { size: 14 })) : null
+        );
+      })
+    );
+  }
+
+  function moderationSection() {
+    if (!canModerate() || !reports.length) return null;
+    return h('div', { className: 'stack' },
+      h('div', { className: 'section-title' }, `DENÚNCIAS PENDENTES (${reports.length})`),
+      reports.map(r => h('div', { className: 'card card-tight stack' },
+        h('div', { className: 'row-between' },
+          h('span', { className: 'pill pill-orange' }, r.target_type === 'post' ? 'Publicação' : 'Membro'),
+          h('span', { className: 'text-faint', style: { fontSize: '11px' } }, `denunciado por ${(r.reporter && (r.reporter.nickname || r.reporter.name)) || 'alguém'}`)
         ),
-        m.role === 'owner' ? icon('crown', { size: 18, className: 'text-dim' }) : null,
-        (isStaff() && m.role !== 'owner' && (!membership || m.user_id !== membership.user_id)) ? h('button', {
-          className: 'icon-btn icon-btn-sm', 'aria-label': 'Remover',
-          onClick: async () => {
-            const ok = await confirmDialog({ title: 'Remover membro', message: 'Remover essa pessoa da comunidade?', confirmLabel: 'Remover', danger: true });
-            if (!ok) return;
-            await removeMember(communityId, m.user_id); toast('Removido', { iconName: 'check' }); load();
-          },
-        }, icon('trash', { size: 14 })) : null
+        r.target_type === 'post' && r.post ? h('p', { className: 'text-dim', style: { fontSize: '13px' } }, `"${r.post.body}"`) : null,
+        r.target_type === 'member' && r.target ? h('p', { className: 'text-dim', style: { fontSize: '13px' } }, `Sobre: ${r.target.nickname || r.target.name}`) : null,
+        h('p', { style: { fontSize: '13px' } }, r.reason),
+        h('div', { className: 'row' },
+          h('button', { className: 'btn btn-outline btn-sm grow', onClick: async () => { await resolveReport(r.id, 'dismissed'); toast('Descartada', { iconName: 'check' }); load(); } }, 'Descartar'),
+          h('button', { className: 'btn btn-primary btn-sm grow', onClick: async () => { await resolveReport(r.id, 'resolved'); toast('Marcada como resolvida', { iconName: 'check' }); load(); } }, 'Resolver')
+        )
       ))
     );
   }
@@ -269,6 +342,7 @@ export function renderComunidadeDetalhe(viewEl, params, nav) {
       h('div', { className: 'row-between' }, back, h('h1', { style: { fontSize: '19px' } }, community.name), h('span', { style: { width: '44px' } })),
       headerSection(),
       pendingSection(),
+      moderationSection(),
       challengesSection(),
       muralSection(),
       membersSection(),
