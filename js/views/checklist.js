@@ -3,6 +3,7 @@ import { icon } from '../icons.js';
 import { store } from '../store.js';
 import { confirmDialog, toast } from '../ui.js';
 import { DEFAULT_CHECKLIST_ITEMS, dateKey } from '../habits.js';
+import { markDeleted } from '../tombstones.js';
 
 function completionKey(taskId, day) {
   return `${taskId}:${day}`;
@@ -23,7 +24,7 @@ export function renderChecklist(viewEl, params, nav) {
           'aria-label': done ? 'Desmarcar' : 'Marcar',
           onClick: () => store.mutate(s => {
             const key = completionKey(task.id, today);
-            if (s.dailyTaskCompletions[key]) delete s.dailyTaskCompletions[key];
+            if (s.dailyTaskCompletions[key]) { delete s.dailyTaskCompletions[key]; markDeleted(s, 'dailyTaskCompletions', key); }
             else s.dailyTaskCompletions[key] = todayISO();
           }),
         }, done ? icon('check', { size: 18 }) : null),

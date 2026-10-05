@@ -6,6 +6,7 @@ import {
   HABIT_CATEGORIES, categoryFor, WEEKDAYS, newHabit, createEnglish90Habit,
   habitStats, isHabitCheckedToday, checkinId, dateKey,
 } from '../habits.js';
+import { markDeleted } from '../tombstones.js';
 
 function habitFormModal(existing, onSave) {
   const data = existing ? { ...existing, daysOfWeek: [...existing.daysOfWeek] } : {
@@ -122,7 +123,11 @@ export function renderMinhaBase(viewEl, params, nav) {
           'aria-label': checkedToday ? 'Desmarcar hoje' : 'Marcar hoje',
           onClick: () => {
             if (checkedToday) {
-              store.mutate(s => { delete s.habitCheckins[checkinId(habit.id, dateKey())]; });
+              store.mutate(s => {
+                const key = checkinId(habit.id, dateKey());
+                delete s.habitCheckins[key];
+                markDeleted(s, 'habitCheckins', key);
+              });
               return;
             }
             checkinModal(habit, note => {

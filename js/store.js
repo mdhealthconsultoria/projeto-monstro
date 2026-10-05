@@ -82,10 +82,15 @@ class Store {
 
     this.remoteRevision = remote ? (remote.revision || 0) : 0;
 
+    // Se os dois lados têm dado de verdade, faz merge (nunca descarta um
+    // lado inteiro — local pode ter mudanças feitas offline que o remoto
+    // ainda não viu, e vice-versa). Só escolhe um lado puro quando o outro
+    // está genuinamente vazio (nada pra mesclar).
     let state;
-    if (hasRealData(remote && remote.state)) {
-      const localNewer = local && local.lastModifiedAt && new Date(local.lastModifiedAt) > new Date(remote.updated_at);
-      state = localNewer ? local : remote.state;
+    if (local && hasRealData(remote && remote.state)) {
+      state = mergeStates(local, remote.state);
+    } else if (hasRealData(remote && remote.state)) {
+      state = remote.state;
     } else {
       state = local || defaultState();
     }

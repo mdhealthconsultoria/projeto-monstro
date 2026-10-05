@@ -5,6 +5,7 @@ import { store } from '../store.js';
 import { EXERCISES_BY_TYPE, WORKOUT_TYPES, isDayCompleted } from '../model.js';
 import { aggregateDay, previousSimilarDay, compareAggregates, formatSignedNumber, formatSignedPercent } from '../logic.js';
 import { openCheckinModal } from './checkin.js';
+import { markDeleted } from '../tombstones.js';
 
 function cloneExercises(exercises) {
   return JSON.parse(JSON.stringify(exercises));
@@ -139,7 +140,7 @@ export function openDayDetail(day, { onClose } = {}) {
       danger: true,
     });
     if (!ok) return;
-    store.mutate(s => { delete s.days[day]; });
+    store.mutate(s => { delete s.days[day]; markDeleted(s, 'days', String(day)); });
     toast('Registro apagado', { iconName: 'trash' });
     close();
     if (onClose) onClose();

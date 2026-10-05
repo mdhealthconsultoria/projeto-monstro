@@ -1,4 +1,4 @@
-import { h, mount, formatMMSS, formatDateShort, todayISO } from '../utils.js';
+import { h, mount, formatMMSS, formatDateShort, todayISO, uid } from '../utils.js';
 import { icon } from '../icons.js';
 import { store } from '../store.js';
 import { RestTimer } from '../timer.js';
@@ -25,7 +25,7 @@ export function renderFocus(viewEl, params, nav) {
     const wasWork = f.mode === 'work';
     store.mutate(s => {
       s.focus.sessions.unshift({
-        date: todayISO(), mode: s.focus.mode, durationMin: s.focus.currentDurationMin,
+        id: uid(), date: todayISO(), mode: s.focus.mode, durationMin: s.focus.currentDurationMin,
         objective: s.focus.mode === 'work' ? s.focus.objective : '', completedAt: todayISO(),
       });
       s.focus.endAt = null;

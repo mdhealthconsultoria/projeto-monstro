@@ -3,6 +3,7 @@ import { icon, pyramidMark } from '../icons.js';
 import { store } from '../store.js';
 import { toast, confirmDialog } from '../ui.js';
 import { HEALTH_MEASUREMENT_TYPES, healthTypeInfo, areaFor } from '../model.js';
+import { markDeleted } from '../tombstones.js';
 
 const SAUDE_COLOR = (areaFor('saude') || {}).color || '#4fd1c5';
 
@@ -115,7 +116,10 @@ function medicoesCard(measurements) {
               h('span', { style: { fontFamily: 'var(--font-display)', color: 'var(--orange-2)' } }, `${m.value} ${info ? info.unit : ''}`),
               h('button', { className: 'icon-btn-sm', 'aria-label': 'Excluir', onClick: async () => {
                 const ok = await confirmDialog({ title: 'Excluir medição', message: 'Remover este registro do histórico?', confirmLabel: 'Excluir', danger: true });
-                if (ok) store.mutate(s => { s.healthProfile.measurements = s.healthProfile.measurements.filter(x => x.id !== m.id); });
+                if (ok) store.mutate(s => {
+                  s.healthProfile.measurements = s.healthProfile.measurements.filter(x => x.id !== m.id);
+                  markDeleted(s, 'measurements', m.id);
+                });
               } }, icon('trash', { size: 14 }))
             )
           );

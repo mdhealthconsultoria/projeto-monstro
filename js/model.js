@@ -185,6 +185,9 @@ export function defaultState() {
     businessConcepts: { appliedIds: [] }, // Business Master — autoavaliação, sem nota/prova
     knowledgeItems: {}, // { id, title, type, stage, sessions: [{date, minutes, note}], createdAt, archived }
     notificationPrefs: { dailyReminder: true, breathingReminder: true, habitReminders: true },
+    // Marcas de remoção pra sobreviver a merge de conflito entre aparelhos —
+    // ver js/tombstones.js e js/merge.js. { [colecao]: { [chave]: isoDate } }.
+    tombstones: {},
     lastModifiedAt: null,
   };
 }
