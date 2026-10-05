@@ -53,6 +53,7 @@ class Store {
     this.saveTimer = null;
     this.syncStatus = 'idle'; // 'idle' | 'saving' | 'saved' | 'offline' | 'error'
     this.remoteRevision = 0; // revisão de user_app_state lida da última vez — ver pushToCloud()
+    this.syncQueue = Promise.resolve(); // serializa escritas — ver pushToCloud()
     window.addEventListener('online', () => this.pushToCloud());
   }
 
@@ -139,20 +140,43 @@ class Store {
   persist() {
     clearTimeout(this.saveTimer);
     const userId = this.userId;
-    const snapshot = this.state;
     // Save immediately (debounced only to coalesce rapid successive calls in the same tick).
+    // Lê this.state só dentro do callback (não captura referência antes) —
+    // ver comentário em pushToCloud sobre por que uma referência capturada
+    // cedo demais pode ficar velha.
     this.saveTimer = setTimeout(() => {
-      saveState(userId, snapshot).catch(err => console.error('Falha ao salvar dados localmente', err));
-      this.pushToCloud(snapshot);
+      saveState(userId, this.state).catch(err => console.error('Falha ao salvar dados localmente', err));
+      this.pushToCloud();
     }, 0);
   }
 
-  async pushToCloud(snapshot = this.state) {
-    if (!this.userId || !snapshot) return;
+  // Enfileira a escrita em vez de disparar na hora, e NUNCA fixa qual
+  // snapshot vai gravar até o momento em que a escrita realmente roda — só
+  // lê this.state ao vivo dentro de pushOnce(). As duas coisas resolvem
+  // problemas diferentes:
+  // 1) Duas chamadas disparadas em paralelo (ex. o listener de 'online' MAIS
+  //    um persist() pendente de quando ainda estava offline) colidiriam uma
+  //    na expectedRevision da outra e esgotariam as tentativas — a fila
+  //    serializa isso.
+  // 2) Se a primeira escrita da fila colidir em revisão com outro aparelho,
+  //    pushWithRetry troca this.state por um merge (this.state = merged).
+  //    Uma segunda escrita que já tivesse capturado o this.state ANTIGO
+  //    (antes do merge) sobrescreveria o merge com dado velho quando
+  //    finalmente rodasse — por isso cada chamada só decide o que gravar
+  //    quando é a sua vez de executar, nunca antes.
+  pushToCloud() {
+    if (!this.userId) return Promise.resolve();
+    const run = () => this.pushOnce();
+    this.syncQueue = this.syncQueue.then(run, run);
+    return this.syncQueue;
+  }
+
+  async pushOnce() {
+    if (!this.state) return;
     this.syncStatus = 'saving';
     this.notify();
     try {
-      await this.pushWithRetry(snapshot);
+      await this.pushWithRetry(this.state);
       this.syncStatus = 'saved';
       // Melhor esforço, não bloqueia o fluxo principal de sincronização —
       // ver benchmark.js sobre por que o cliente envia o score já pronto.

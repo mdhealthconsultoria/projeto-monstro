@@ -31,18 +31,21 @@ create table if not exists public.community_reports (
 
 alter table public.community_reports enable row level security;
 
+drop policy if exists "reports_insert_self" on public.community_reports;
 create policy "reports_insert_self" on public.community_reports
   for insert with check (
     auth.uid() = reporter_id and public.is_community_member(community_id)
   );
 
 -- Staff vê tudo da própria comunidade; quem denunciou vê só a própria denúncia.
+drop policy if exists "reports_select" on public.community_reports;
 create policy "reports_select" on public.community_reports
   for select using (
     auth.uid() = reporter_id
     or public.community_role(community_id) in ('owner', 'admin', 'moderator')
   );
 
+drop policy if exists "reports_update_by_staff" on public.community_reports;
 create policy "reports_update_by_staff" on public.community_reports
   for update using (
     public.community_role(community_id) in ('owner', 'admin', 'moderator')
@@ -56,9 +59,13 @@ create index if not exists idx_community_reports_community on public.community_r
 -- só embute `profiles` numa query se houver uma FK DIRETA pra ela, não
 -- basta um ancestral comum (mesmo padrão de 0003_communities_profile_fk.sql).
 alter table public.community_reports
+  drop constraint if exists community_reports_reporter_profile_fkey;
+alter table public.community_reports
   add constraint community_reports_reporter_profile_fkey
   foreign key (reporter_id) references public.profiles(id) on delete cascade;
 
+alter table public.community_reports
+  drop constraint if exists community_reports_target_user_profile_fkey;
 alter table public.community_reports
   add constraint community_reports_target_user_profile_fkey
   foreign key (target_user_id) references public.profiles(id) on delete cascade;
@@ -76,15 +83,20 @@ alter table public.blocked_users enable row level security;
 
 -- Só você vê e gerencia a própria lista — ninguém consegue checar se foi
 -- bloqueado por outra pessoa (evita constrangimento/represália).
+drop policy if exists "blocked_users_select_own" on public.blocked_users;
 create policy "blocked_users_select_own" on public.blocked_users
   for select using (auth.uid() = blocker_id);
 
+drop policy if exists "blocked_users_insert_own" on public.blocked_users;
 create policy "blocked_users_insert_own" on public.blocked_users
   for insert with check (auth.uid() = blocker_id);
 
+drop policy if exists "blocked_users_delete_own" on public.blocked_users;
 create policy "blocked_users_delete_own" on public.blocked_users
   for delete using (auth.uid() = blocker_id);
 
+alter table public.blocked_users
+  drop constraint if exists blocked_users_blocked_profile_fkey;
 alter table public.blocked_users
   add constraint blocked_users_blocked_profile_fkey
   foreign key (blocked_id) references public.profiles(id) on delete cascade;
