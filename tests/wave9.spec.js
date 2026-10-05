@@ -71,7 +71,7 @@ test.describe('Onda 9 — Benchmark anônimo por idade (melhor esforço)', () =>
     await page.locator('#view').getByRole('button', { name: 'Excluir conta' }).click();
     await page.locator('#modal-root').getByRole('button', { name: 'Excluir conta' }).click();
 
-    const realErrors = errors.filter(e => !/ResizeObserver|Failed to sync|Failed to load resource/i.test(e));
+    const realErrors = errors.filter(e => !/ResizeObserver|Failed to sync|Failed to load resource|blocked by CORS policy/i.test(e));
     expect(realErrors, `Console/page errors: ${realErrors.join('\n')}`).toEqual([]);
   });
 });

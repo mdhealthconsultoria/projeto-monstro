@@ -158,12 +158,30 @@ export async function deleteAccount() {
   const { data: sessionData } = await supabaseClient.auth.getSession();
   if (!sessionData.session) return;
   const userId = sessionData.session.user.id;
-  // Removing the auth.users row itself requires an admin/service-role call,
-  // which only a server-side function can safely do — not built yet. For now
-  // this clears all of the user's own data (allowed by RLS) and signs out.
+  const accessToken = sessionData.session.access_token;
+
   await deleteAllPhotosCloud(userId);
-  await supabaseClient.from('user_app_state').delete().eq('user_id', userId);
-  await supabaseClient.from('profiles').delete().eq('id', userId);
+
+  // A Edge Function `delete-account` apaga a linha em auth.users de verdade
+  // (só service_role consegue, só existe no servidor) — o resto do banco
+  // cascateia sozinho a partir dela. Enquanto ela não estiver publicada
+  // (supabase/functions/delete-account), cai pro comportamento antigo:
+  // limpa os dados da própria conta (permitido por RLS) e desloga, sem
+  // apagar a credencial — mesmo padrão de degradação graciosa usado nos
+  // outros serviços (ver isMissingTable em moderation.js/benchmark.js).
+  let deletedIdentity = false;
+  try {
+    const { error } = await supabaseClient.functions.invoke('delete-account', {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!error) deletedIdentity = true;
+  } catch { /* function não publicada ainda, ou offline */ }
+
+  if (!deletedIdentity) {
+    await supabaseClient.from('user_app_state').delete().eq('user_id', userId);
+    await supabaseClient.from('profiles').delete().eq('id', userId);
+  }
+
   await signOut();
 }
 

@@ -39,6 +39,15 @@ export function checkinId(habitId, day) {
   return `${habitId}:${day}`;
 }
 
+// Inverso de dateKey(): sempre meia-noite LOCAL. new Date('YYYY-MM-DD') é
+// meia-noite UTC e no fuso do Brasil (UTC-3) cai no dia anterior — todo
+// parse de date-key no código precisa passar por aqui, nunca pelo
+// construtor de Date com string direto.
+export function parseDateKey(key) {
+  const [y, m, d] = key.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
 export function newHabit({ title, category = 'personalizado', area = null, icon, frequency = 'daily', daysOfWeek = [0, 1, 2, 3, 4, 5, 6], goalDays = 30, reminder = null, color, description = '', templateId = null, mechanism = null, evidenceLevel = null, source = null }) {
   const cat = categoryFor(category);
   return {
@@ -155,7 +164,7 @@ export function habitBestStreak(state, habit) {
     if (habit.frequency !== 'custom' && habit.frequency !== 'weekly') return true;
     return (habit.daysOfWeek || []).includes(date.getDay());
   }
-  const dates = [...daySet].map(k => new Date(k)).sort((a, b) => a - b);
+  const dates = [...daySet].map(parseDateKey).sort((a, b) => a - b);
   const cursor = new Date(dates[0]);
   const last = dates[dates.length - 1];
   let best = 0, current = 0;

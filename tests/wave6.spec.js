@@ -91,7 +91,7 @@ test.describe('Onda 6 — Fotos de evolução na nuvem (melhor esforço)', () =>
     // "Bucket not found" é o comportamento ESPERADO e documentado até a
     // migration 0007 ser rodada — o app deve continuar funcionando (e
     // funcionou, o teste chegou até aqui), só registrando isso no console.
-    const realErrors = errors.filter(e => !/ResizeObserver|Failed to sync|Failed to load resource|Falha ao (sincronizar|remover) foto/i.test(e));
+    const realErrors = errors.filter(e => !/ResizeObserver|Failed to sync|Failed to load resource|Falha ao (sincronizar|remover) foto|blocked by CORS policy/i.test(e));
     expect(realErrors, `Console/page errors: ${realErrors.join('\n')}`).toEqual([]);
   });
 });

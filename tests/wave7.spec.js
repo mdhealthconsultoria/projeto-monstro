@@ -118,8 +118,8 @@ test.describe('Onda 7 — Denúncias e bloqueio em comunidades', () => {
     await expect(pageA.getByRole('navigation').getByRole('button', { name: 'Comunidades' })).toBeVisible({ timeout: 10000 });
     await deleteAccount(pageA);
 
-    const realErrorsA = errorsA.filter(e => !/ResizeObserver|Failed to sync|Failed to load resource/i.test(e));
-    const realErrorsB = errorsB.filter(e => !/ResizeObserver|Failed to sync|Failed to load resource/i.test(e));
+    const realErrorsA = errorsA.filter(e => !/ResizeObserver|Failed to sync|Failed to load resource|blocked by CORS policy/i.test(e));
+    const realErrorsB = errorsB.filter(e => !/ResizeObserver|Failed to sync|Failed to load resource|blocked by CORS policy/i.test(e));
     expect(realErrorsA, `A errors: ${realErrorsA.join('\n')}`).toEqual([]);
     expect(realErrorsB, `B errors: ${realErrorsB.join('\n')}`).toEqual([]);
 
