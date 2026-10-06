@@ -82,12 +82,12 @@ class Store {
 
     this.remoteRevision = remote ? (remote.revision || 0) : 0;
 
-    // Se os dois lados têm dado de verdade, faz merge (nunca descarta um
-    // lado inteiro — local pode ter mudanças feitas offline que o remoto
-    // ainda não viu, e vice-versa). Só escolhe um lado puro quando o outro
-    // está genuinamente vazio (nada pra mesclar).
+    // Sempre que os dois existem, faz merge — mergeStates já sabe lidar com
+    // um lado vazio (une sem perder nada) e com um reset explícito (um lado
+    // mais velho que o resetAt do outro é descartado por inteiro, nunca
+    // ressuscitado). Só escolhe um lado puro quando o OUTRO nem existe.
     let state;
-    if (local && hasRealData(remote && remote.state)) {
+    if (local && remote && remote.state) {
       state = mergeStates(local, remote.state);
     } else if (hasRealData(remote && remote.state)) {
       state = remote.state;
@@ -289,6 +289,13 @@ class Store {
     await clearStateForUser(this.userId);
     await deleteAllPhotosCloud(this.userId);
     this.state = defaultState();
+    // Marca a hora do reset — sem isso, um outro aparelho com cache antigo
+    // (lastModifiedAt de antes do reset, mas "mais recente" que o
+    // lastModifiedAt null de um defaultState() puro) traria tudo de volta
+    // no próximo merge. Ver js/merge.js.
+    const now = todayISO();
+    this.state.resetAt = now;
+    this.state.lastModifiedAt = now;
     await saveState(this.userId, this.state);
     this.recompute();
     this.notify();

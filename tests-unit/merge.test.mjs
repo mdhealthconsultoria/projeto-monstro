@@ -54,11 +54,51 @@ test('listas com id são mescladas por união, não sobrescritas', () => {
   assert.deepEqual(ids, ['t1', 't2']);
 });
 
-test('listas de valores primitivos viram união sem duplicata', () => {
-  const local = baseState({ lastModifiedAt: '2026-01-01T10:00:00.000Z', activeAreas: ['fisico', 'saude'] });
-  const remote = baseState({ lastModifiedAt: '2026-01-01T09:00:00.000Z', activeAreas: ['saude', 'conhecimento'] });
+// Revisão 2: appliedIds continua conjunto de verdade (não dá pra
+// "desaplicar" um conceito do Business Master, só pode crescer).
+test('businessConcepts.appliedIds é conjunto de verdade: união sem duplicata', () => {
+  const local = baseState({
+    lastModifiedAt: '2026-01-01T10:00:00.000Z',
+    businessConcepts: { appliedIds: ['negociacao', 'networking'] },
+  });
+  const remote = baseState({
+    lastModifiedAt: '2026-01-01T09:00:00.000Z',
+    businessConcepts: { appliedIds: ['networking', 'vendas'] },
+  });
   const merged = mergeStates(local, remote);
-  assert.deepEqual([...merged.activeAreas].sort(), ['conhecimento', 'fisico', 'saude']);
+  assert.deepEqual([...merged.businessConcepts.appliedIds].sort(), ['negociacao', 'networking', 'vendas']);
+});
+
+// Revisão 2 (ponto 2): daysOfWeek NÃO é conjunto — a instrução original
+// (revisão 1) estava errada. O usuário pode legitimamente trocar os dias
+// ativos de um hábito; uma união nunca deixaria ele RETIRAR um dia.
+test('daysOfWeek é valor atômico: vence o lado mais recente, não união', () => {
+  const local = baseState({
+    lastModifiedAt: '2026-01-01T11:00:00.000Z',
+    habits: { h1: { id: 'h1', daysOfWeek: [2, 4] } },
+  });
+  const remote = baseState({
+    lastModifiedAt: '2026-01-01T10:00:00.000Z',
+    habits: { h1: { id: 'h1', daysOfWeek: [1, 3, 5] } },
+  });
+  const merged = mergeStates(local, remote);
+  assert.deepEqual(merged.habits.h1.daysOfWeek, [2, 4]);
+});
+
+// Revisão 2 (ponto 3): activeAreas também é atômico, não união — desativar
+// um pilar precisa sobreviver ao merge (uma união resgataria o pilar
+// desativado se o outro lado ainda estivesse com ele ativo).
+test('activeAreas é valor atômico: desativar uma área sobrevive ao merge', () => {
+  const local = baseState({
+    lastModifiedAt: '2026-01-01T11:00:00.000Z',
+    activeAreas: ['fisico'], // desativou "saude" aqui, depois do remoto
+  });
+  const remote = baseState({
+    lastModifiedAt: '2026-01-01T10:00:00.000Z',
+    activeAreas: ['fisico', 'saude'],
+  });
+  const merged = mergeStates(local, remote);
+  assert.deepEqual(merged.activeAreas, ['fisico']);
 });
 
 test('campo escalar em conflito: vence o snapshot mais recente como um todo', () => {
@@ -172,4 +212,104 @@ test('medição apagada (tombstone em array por id) não ressuscita', () => {
 
   const merged = mergeStates(local, remote);
   assert.deepEqual(merged.healthProfile.measurements, []);
+});
+
+// Testa o mecanismo de mergeArray isoladamente (dailyTasks não passa por
+// migrateState — nenhuma "ajuda" de migração pode mascarar o resultado
+// aqui): um item sem id misturado com um item com id NUNCA pode ser
+// descartado, só porque o array como um todo "tem algum id".
+test('mergeArray (mecanismo genérico): item sem id misturado com item com id nunca é descartado', () => {
+  const local = baseState({
+    lastModifiedAt: '2026-01-01T10:00:00.000Z',
+    dailyTasks: [{ id: 't1', title: 'Com id' }, { title: 'Sem id (legado)', order: 0 }],
+  });
+  const remote = baseState({
+    lastModifiedAt: '2026-01-01T09:00:00.000Z',
+    dailyTasks: [],
+  });
+  const merged = mergeStates(local, remote);
+  assert.equal(merged.dailyTasks.length, 2);
+});
+
+// BLOQUEADOR da revisão 2: um usuário antigo tem N sessões sem `id` (de
+// antes do id existir nesses registros). Ao registrar uma sessão nova (já
+// com id) e sincronizar, o merge via união-por-id enxergava "algum item tem
+// id" e pulava (descartava) todo item sem id — 20 sessões antigas + 1 nova
+// virava só 1. mergeStates precisa migrar (dar id determinístico) os itens
+// legados ANTES de decidir, e nunca descartar um item só por falta de id.
+test('sessões legadas sem id sobrevivem ao merge quando uma sessão nova (com id) aparece', () => {
+  const legacySessions = Array.from({ length: 20 }, (_, i) => ({
+    date: `2026-01-${String(i + 1).padStart(2, '0')}T08:00:00.000Z`,
+    minutes: 10 + i,
+  }));
+
+  const local = baseState({
+    lastModifiedAt: '2026-01-21T08:00:00.000Z',
+    knowledgeItems: {
+      k1: { id: 'k1', title: 'Inglês', sessions: [...legacySessions, { id: 'novo-1', date: '2026-01-21T08:00:00.000Z', minutes: 30 }] },
+    },
+  });
+  const remote = baseState({
+    lastModifiedAt: '2026-01-20T08:00:00.000Z',
+    knowledgeItems: {
+      k1: { id: 'k1', title: 'Inglês', sessions: legacySessions },
+    },
+  });
+
+  const merged = mergeStates(local, remote);
+  assert.equal(merged.knowledgeItems.k1.sessions.length, 21);
+});
+
+// Mesmo cenário mas simulando os DOIS lados tendo migrado independentemente
+// o mesmo registro legado (sem terem se comunicado ainda) — o id
+// determinístico (baseado no conteúdo) garante que viram o MESMO item em
+// vez de uma duplicata por aparelho.
+test('migração de id determinística: o mesmo registro legado migrado nos dois lados não duplica', () => {
+  const legacySession = { date: '2026-01-01T08:00:00.000Z', minutes: 15 };
+  const local = baseState({
+    lastModifiedAt: '2026-01-01T09:00:00.000Z',
+    focus: { sessions: [{ ...legacySession }] },
+  });
+  const remote = baseState({
+    lastModifiedAt: '2026-01-01T09:00:00.000Z',
+    focus: { sessions: [{ ...legacySession }] },
+  });
+  const merged = mergeStates(local, remote);
+  assert.equal(merged.focus.sessions.length, 1);
+});
+
+// Ponto 5 da revisão 2: resetAll grava resetAt. Um lado cuja última
+// modificação é ANTERIOR ao resetAt do outro representa dado de antes do
+// reset e tem que ser descartado por inteiro (não mesclado de volta).
+test('reset explícito descarta por inteiro o lado com cache anterior ao reset', () => {
+  const localComCacheAntigo = baseState({
+    lastModifiedAt: '2026-01-01T08:00:00.000Z', // antes do reset do outro lado
+    habits: { h1: { id: 'h1', title: 'Hábito de antes do reset' } },
+    dailyTasks: [{ id: 't1', title: 'Tarefa de antes do reset' }],
+  });
+  const remoteResetado = baseState({
+    lastModifiedAt: '2026-01-01T10:00:00.000Z',
+    resetAt: '2026-01-01T10:00:00.000Z',
+    habits: {},
+    dailyTasks: [],
+  });
+
+  const merged = mergeStates(localComCacheAntigo, remoteResetado);
+  assert.deepEqual(merged.habits, {});
+  assert.deepEqual(merged.dailyTasks, []);
+});
+
+test('reset explícito não afeta um lado modificado DEPOIS do reset', () => {
+  const localPosReset = baseState({
+    lastModifiedAt: '2026-01-01T11:00:00.000Z', // depois do reset
+    habits: { h2: { id: 'h2', title: 'Hábito novo, pós-reset' } },
+  });
+  const remoteResetado = baseState({
+    lastModifiedAt: '2026-01-01T10:00:00.000Z',
+    resetAt: '2026-01-01T10:00:00.000Z',
+    habits: {},
+  });
+
+  const merged = mergeStates(localPosReset, remoteResetado);
+  assert.ok(merged.habits.h2);
 });

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'skeelo-cache-v21';
+const CACHE_NAME = 'skeelo-cache-v22';
 const PRECACHE_URLS = [
   './',
   './index.html',
@@ -19,6 +19,7 @@ const PRECACHE_URLS = [
   './js/inspirations.js',
   './js/merge.js',
   './js/tombstones.js',
+  './js/migrateState.js',
   './js/services/auth.js',
   './js/services/auth.local.js',
   './js/services/auth.supabase.js',

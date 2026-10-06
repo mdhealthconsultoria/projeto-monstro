@@ -188,6 +188,11 @@ export function defaultState() {
     // Marcas de remoção pra sobreviver a merge de conflito entre aparelhos —
     // ver js/tombstones.js e js/merge.js. { [colecao]: { [chave]: isoDate } }.
     tombstones: {},
+    // Hora do último "Apagar todos os dados" (store.resetAll) — um lado cuja
+    // última modificação é anterior ao resetAt do OUTRO lado é descartado
+    // por inteiro no merge, pra um aparelho com cache antigo não trazer de
+    // volta o que o usuário decidiu apagar. Ver js/merge.js.
+    resetAt: null,
     lastModifiedAt: null,
   };
 }
