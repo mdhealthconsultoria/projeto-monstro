@@ -1,4 +1,4 @@
-import { h, mount, todayISO, formatDateShort } from '../utils.js';
+import { h, mount, todayISO, formatDateShort, uid } from '../utils.js';
 import { icon } from '../icons.js';
 import { store } from '../store.js';
 import { renderEvolucao } from './evolucao.js';
@@ -46,7 +46,7 @@ function renderImc(container) {
         h('button', { className: 'btn btn-primary btn-sm', onClick: () => {
           const kg = Number(weightInput.value);
           if (!kg || kg < 20 || kg > 400) { toast('Informe um peso válido.', { iconName: 'alert' }); return; }
-          store.mutate(s => { s.bodyMetrics.weights.push({ date: todayISO(), kg }); });
+          store.mutate(s => { s.bodyMetrics.weights.push({ id: uid(), date: todayISO(), kg }); });
           toast('Peso registrado', { iconName: 'check' });
         } }, 'Registrar peso')
       ),

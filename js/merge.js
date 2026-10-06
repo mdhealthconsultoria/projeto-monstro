@@ -3,11 +3,12 @@
 // loadForUser() encontra dado dos dois lados. Regras, cada uma resolvendo
 // um jeito diferente de perder dado:
 //
-// 0) Reset explícito (store.resetAll — "Apagar todos os dados"): se um lado
-//    nunca foi tocado DEPOIS do resetAt declarado pelo outro, ele representa
-//    dado de ANTES do reset e é descartado por inteiro (nunca mesclado) —
-//    sem isso, um aparelho com cache antigo "ressuscitaria" tudo que o
-//    usuário decidiu apagar.
+// 0) Reset explícito (store.resetAll — "Apagar todos os dados"): compara
+//    resetAt CONTRA resetAt (nunca contra lastModifiedAt) — o lado com o
+//    resetAt maior vence por inteiro. Comparar com lastModifiedAt permitia
+//    que um único mutate() no aparelho com cache antigo (feito depois do
+//    reset, mas sem saber dele) "ressuscitasse" tudo, só por ter um
+//    lastModifiedAt mais recente que o resetAt do outro lado.
 // 1) Objeto plano (mapa por chave: habits, habitCheckins, knowledgeItems,
 //    days, dailyTaskCompletions, ou um registro aninhado como healthProfile)
 //    é mesclado chave a chave, recursivamente — uma chave presente só de um
@@ -54,17 +55,22 @@ export function mergeStates(local, remote) {
   remote = migrateState(remote);
 
   // Reset explícito vence qualquer merge normal — ver nota 0) no topo.
-  if (remote && toTime(remote.resetAt) > toTime(local && local.lastModifiedAt)) {
-    return remote;
-  }
-  if (local && toTime(local.resetAt) > toTime(remote && remote.lastModifiedAt)) {
-    return local;
+  // resetAt contra resetAt, nunca contra lastModifiedAt.
+  const localResetAt = toTime(local && local.resetAt);
+  const remoteResetAt = toTime(remote && remote.resetAt);
+  if (localResetAt !== remoteResetAt) {
+    return localResetAt > remoteResetAt ? local : remote;
   }
 
   const localNewer = toTime(local && local.lastModifiedAt) >= toTime(remote && remote.lastModifiedAt);
   const tombstones = mergeTombstones(local && local.tombstones, remote && remote.tombstones);
   const merged = mergeValue(local, remote, localNewer, []);
   merged.tombstones = tombstones;
+  // resetAt nunca passa pelo merge genérico de escalar (que escolheria o
+  // resetAt do lado com lastModifiedAt mais recente, podendo até voltar a
+  // null) — aqui os dois já são iguais (ou os dois null), então qualquer um
+  // dos dois serve; fora desse caso o early-return acima já tratou.
+  merged.resetAt = (local && local.resetAt) || (remote && remote.resetAt) || null;
   return applyTombstones(merged, tombstones);
 }
 
@@ -133,10 +139,9 @@ function mergeValue(a, b, aIsNewer, path) {
 function mergeObject(a, b, aIsNewer, path) {
   const out = {};
   for (const key of new Set([...Object.keys(a), ...Object.keys(b)])) {
-    // tombstones é tratado à parte (mergeTombstones), com regra própria
-    // (vence o timestamp mais recente por chave, não "o lado mais novo
-    // como um todo") — não deixa o merge genérico duplicar isso aqui.
-    if (key === 'tombstones' && path.length === 0) continue;
+    // tombstones e resetAt são tratados à parte (regra própria, não "o lado
+    // mais novo como um todo") — não deixa o merge genérico pisar nisso.
+    if ((key === 'tombstones' || key === 'resetAt') && path.length === 0) continue;
     out[key] = mergeValue(a[key], b[key], aIsNewer, path.concat(key));
   }
   return out;
@@ -156,6 +161,16 @@ function hasId(item) {
 function dedupeKey(item) {
   return hasId(item) ? `id:${item.id}` : `content:${JSON.stringify(item)}`;
 }
+
+// Campos onde a UI assume que o ÚLTIMO item do array é o mais recente
+// (progresso.js lê weights[weights.length-1], conhecimento.js lê
+// sessions[sessions.length-1]) — depois de unir por id, a ordem de
+// inserção do Map (a primeiro, depois b) não tem relação nenhuma com data,
+// então precisa ordenar explicitamente. Só esses dois, por decisão
+// explícita — não é comportamento genérico de toda lista com id (dailyTasks
+// tem uma ordem própria via o campo `order`, que ordenar por data aqui
+// destruiria).
+const DATE_ORDERED_FIELDS = new Set(['sessions', 'weights']);
 
 function mergeArray(a, b, aIsNewer, path) {
   const field = fieldNameFor(path);
@@ -186,7 +201,17 @@ function mergeArray(a, b, aIsNewer, path) {
   for (const item of b) {
     const key = dedupeKey(item);
     const existing = map.get(key);
-    map.set(key, existing === undefined || recordTimestamp(item) >= recordTimestamp(existing) ? item : existing);
+    if (existing === undefined) { map.set(key, item); continue; }
+    const itemTime = recordTimestamp(item);
+    const existingTime = recordTimestamp(existing);
+    // Em empate exato de timestamp, vence o lado aIsNewer (a), não sempre
+    // b — doutra forma arquivar/editar um registro no lado MAIS NOVO nunca
+    // sobrevive ao merge quando a mudança não tem timestamp próprio (ex.
+    // dailyTasks.archived não atualiza nenhum campo de data).
+    const bWins = itemTime > existingTime || (itemTime === existingTime && !aIsNewer);
+    if (bWins) map.set(key, item);
   }
-  return [...map.values()];
+  const merged = [...map.values()];
+  if (DATE_ORDERED_FIELDS.has(field)) merged.sort((x, y) => recordTimestamp(x) - recordTimestamp(y));
+  return merged;
 }

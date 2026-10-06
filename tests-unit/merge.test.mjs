@@ -299,9 +299,15 @@ test('reset explícito descarta por inteiro o lado com cache anterior ao reset',
   assert.deepEqual(merged.dailyTasks, []);
 });
 
-test('reset explícito não afeta um lado modificado DEPOIS do reset', () => {
+// O lado "pós-reset" aqui já CONHECE o reset (resetAt igual ao do remoto —
+// é o cenário real de um aparelho que já sincronizou depois do reset e
+// continuou usando o app normalmente). Só nesse caso uma edição nova pode
+// sobreviver; um aparelho que nunca soube do reset é o cenário do teste
+// seguinte (bloqueador da revisão 3), e esse PRECISA ser descartado.
+test('reset explícito não afeta um lado que já conhece o reset e edita depois', () => {
   const localPosReset = baseState({
     lastModifiedAt: '2026-01-01T11:00:00.000Z', // depois do reset
+    resetAt: '2026-01-01T10:00:00.000Z', // mesmo resetAt do remoto — já sabe do reset
     habits: { h2: { id: 'h2', title: 'Hábito novo, pós-reset' } },
   });
   const remoteResetado = baseState({
@@ -312,4 +318,71 @@ test('reset explícito não afeta um lado modificado DEPOIS do reset', () => {
 
   const merged = mergeStates(localPosReset, remoteResetado);
   assert.ok(merged.habits.h2);
+  assert.equal(merged.resetAt, '2026-01-01T10:00:00.000Z');
+});
+
+// BLOQUEADOR da revisão 3: comparar resetAt com lastModifiedAt (em vez de
+// resetAt com resetAt) permitia que um ÚNICO mutate() no aparelho com cache
+// antigo — feito DEPOIS do reset do outro lado, mas sem o aparelho saber
+// do reset (resetAt dele continua null) — ressuscitasse tudo, só por ter
+// um lastModifiedAt mais recente que o resetAt do remoto.
+test('BLOQUEADOR: um mutate() no aparelho com cache antigo, depois do reset do outro lado, não ressuscita nada', () => {
+  const localComDadoAntigoEUmaEdicaoRecente = baseState({
+    lastModifiedAt: '2026-01-01T12:00:00.000Z', // depois do reset remoto — mas esse lado NUNCA soube do reset
+    habits: { h1: { id: 'h1', title: 'Hábito de antes do reset' } },
+    habitCheckins: { 'h1:2026-01-01': { habitId: 'h1', date: '2026-01-01', createdAt: '2026-01-01T12:00:00.000Z' } },
+  });
+  const remoteResetado = baseState({
+    lastModifiedAt: '2026-01-01T10:00:00.000Z',
+    resetAt: '2026-01-01T10:00:00.000Z',
+    habits: {},
+    habitCheckins: {},
+  });
+
+  const merged = mergeStates(localComDadoAntigoEUmaEdicaoRecente, remoteResetado);
+  assert.deepEqual(merged.habits, {});
+  assert.deepEqual(merged.habitCheckins, {});
+  assert.equal(merged.resetAt, '2026-01-01T10:00:00.000Z');
+});
+
+// Ponto 2 da revisão 3: em empate EXATO de timestamp (dailyTasks.archived
+// não atualiza nenhum campo de data próprio, então arquivar um item deixa
+// o mesmo createdAt dos dois lados), o item do lado `b` (remoto) sempre
+// vencia, mesmo quando o lado `a` (local) era o aIsNewer. Arquivar no lado
+// mais novo tinha que sobreviver.
+test('empate de timestamp na união por id vence o lado aIsNewer, não sempre o remoto', () => {
+  const local = baseState({
+    lastModifiedAt: '2026-01-01T11:00:00.000Z', // local é aIsNewer
+    dailyTasks: [{ id: 't1', title: 'Tarefa', archived: true, createdAt: '2026-01-01T09:00:00.000Z' }],
+  });
+  const remote = baseState({
+    lastModifiedAt: '2026-01-01T10:00:00.000Z',
+    dailyTasks: [{ id: 't1', title: 'Tarefa', archived: false, createdAt: '2026-01-01T09:00:00.000Z' }],
+  });
+
+  const merged = mergeStates(local, remote);
+  assert.equal(merged.dailyTasks.find(t => t.id === 't1').archived, true);
+});
+
+// Ponto 3 da revisão 3: depois de unir dailyTaskCompletions-like arrays por
+// id, a UI assume que o ÚLTIMO item é o mais recente (progresso.js,
+// conhecimento.js) — a ordem de inserção do Map (a inteiro, depois b) não
+// tem relação com data nenhuma, então precisa ordenar.
+test('sessions e weights saem ordenados por data depois da união por id', () => {
+  const local = baseState({
+    lastModifiedAt: '2026-01-01T10:00:00.000Z',
+    bodyMetrics: { weights: [{ id: 'w3', date: '2026-01-03T08:00:00.000Z', kg: 80 }] },
+  });
+  const remote = baseState({
+    lastModifiedAt: '2026-01-01T09:00:00.000Z',
+    bodyMetrics: { weights: [
+      { id: 'w1', date: '2026-01-01T08:00:00.000Z', kg: 82 },
+      { id: 'w2', date: '2026-01-02T08:00:00.000Z', kg: 81 },
+    ] },
+  });
+
+  const merged = mergeStates(local, remote);
+  assert.deepEqual(merged.bodyMetrics.weights.map(w => w.id), ['w1', 'w2', 'w3']);
+  // "peso mais recente" (progresso.js) = último item do array
+  assert.equal(merged.bodyMetrics.weights[merged.bodyMetrics.weights.length - 1].id, 'w3');
 });

@@ -90,9 +90,16 @@ test.describe('Fase 0.3 (ponto 5, revisão 2) — reset explícito sobrevive a c
     await pageA.locator('#modal-root').getByRole('button', { name: 'Apagar tudo' }).click();
     await expect(pageA.getByText('Todos os dados foram apagados')).toBeVisible({ timeout: 10000 });
 
-    // B (que nunca soube do reset, só tinha o cache de antes) recarrega —
-    // loadForUser() tem que descartar o cache antigo de B inteiro, não
-    // mesclar o hábito apagado de volta.
+    // BLOQUEADOR (revisão 3): B ainda não recarregou (não sabe do reset) e
+    // toca no hábito AGORA — isso avança o lastModifiedAt de B pra DEPOIS
+    // do reset de A, mesmo sem B conhecer o resetAt de A. Se o merge
+    // comparasse resetAt com lastModifiedAt (bug antigo), esse único toque
+    // seria suficiente pra ressuscitar tudo quando B sincronizasse.
+    await pageB.getByRole('button', { name: 'Marcar hoje' }).click({ force: true });
+    await pageB.waitForTimeout(2000); // dá tempo do mutate() de B colidir em revisão e cair no merge sozinho
+
+    // B recarrega — loadForUser() tem que descartar o cache antigo de B
+    // inteiro (resetAt de A vence), não mesclar o hábito apagado de volta.
     await pageB.reload();
     const navEvoluirB2 = pageB.getByRole('navigation').getByRole('button', { name: 'Evoluir' });
     await clickTo(pageB, navEvoluirB2, pageB.getByText('Minha Base', { exact: true }));
