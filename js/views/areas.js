@@ -6,6 +6,7 @@ import { LIFE_AREAS, areaFor } from '../model.js';
 import { libraryItemsForArea, evidenceInfo } from '../habitLibrary.js';
 import { createLibraryHabit, habitStats, isHabitCheckedToday, checkinId, dateKey } from '../habits.js';
 import { ageBracketForBirthYear, getMontroBenchmark } from '../services/benchmark.js';
+import { markDeleted } from '../tombstones.js';
 
 function activateArea(areaKey) {
   store.mutate(s => {
@@ -106,7 +107,7 @@ function habitRow(state, habit) {
       onClick: () => {
         store.mutate(s => {
           const key = checkinId(habit.id, dateKey());
-          if (checkedToday) delete s.habitCheckins[key];
+          if (checkedToday) { delete s.habitCheckins[key]; markDeleted(s, 'habitCheckins', key); }
           else s.habitCheckins[key] = { habitId: habit.id, date: dateKey(), note: '', createdAt: new Date().toISOString() };
         });
         if (!checkedToday) toast('Check-in registrado', { iconName: 'check' });

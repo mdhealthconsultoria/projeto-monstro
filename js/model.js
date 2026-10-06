@@ -185,6 +185,14 @@ export function defaultState() {
     businessConcepts: { appliedIds: [] }, // Business Master — autoavaliação, sem nota/prova
     knowledgeItems: {}, // { id, title, type, stage, sessions: [{date, minutes, note}], createdAt, archived }
     notificationPrefs: { dailyReminder: true, breathingReminder: true, habitReminders: true },
+    // Marcas de remoção pra sobreviver a merge de conflito entre aparelhos —
+    // ver js/tombstones.js e js/merge.js. { [colecao]: { [chave]: isoDate } }.
+    tombstones: {},
+    // Hora do último "Apagar todos os dados" (store.resetAll) — um lado cuja
+    // última modificação é anterior ao resetAt do OUTRO lado é descartado
+    // por inteiro no merge, pra um aparelho com cache antigo não trazer de
+    // volta o que o usuário decidiu apagar. Ver js/merge.js.
+    resetAt: null,
     lastModifiedAt: null,
   };
 }

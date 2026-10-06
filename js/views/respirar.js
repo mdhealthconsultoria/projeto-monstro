@@ -1,4 +1,4 @@
-import { h, mount, todayISO, prefersReducedMotion } from '../utils.js';
+import { h, mount, todayISO, prefersReducedMotion, uid } from '../utils.js';
 import { icon } from '../icons.js';
 import { store } from '../store.js';
 import { toast } from '../ui.js';
@@ -36,7 +36,7 @@ export function renderRespirar(viewEl, _params, nav) {
     store.mutate(s => {
       s.breathing = s.breathing || { reminderTime: null, lastCompletedAt: null, sessions: [] };
       s.breathing.lastCompletedAt = todayISO();
-      s.breathing.sessions = [...(s.breathing.sessions || []), { completedAt: s.breathing.lastCompletedAt, rounds: TOTAL_ROUNDS }].slice(-60);
+      s.breathing.sessions = [...(s.breathing.sessions || []), { id: uid(), completedAt: s.breathing.lastCompletedAt, rounds: TOTAL_ROUNDS }].slice(-60);
     });
     toast('Sua prática foi registrada', { iconName: 'checkCircle' });
     draw();

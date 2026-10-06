@@ -3,7 +3,10 @@
   "version": "1.0.0",
   "description": "",
   "main": "sw.js",
-  "scripts": {},
+  "scripts": {
+    "test": "playwright test",
+    "test:unit": "node --test \"tests-unit/**/*.test.mjs\""
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/mdhealthconsultoria/projeto-monstro.git"

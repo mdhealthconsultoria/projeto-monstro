@@ -3,6 +3,7 @@ import { icon } from '../icons.js';
 import { store } from '../store.js';
 import { toast, confirmDialog } from '../ui.js';
 import { KNOWLEDGE_TYPES, KNOWLEDGE_STAGES, knowledgeTypeInfo, knowledgeStageIndex, nextKnowledgeStage } from '../model.js';
+import { markDeleted } from '../tombstones.js';
 
 function stageDots(stage) {
   const idx = knowledgeStageIndex(stage);
@@ -40,13 +41,13 @@ function itemCard(item) {
       h('button', { className: 'btn btn-outline btn-sm', onClick: () => {
         const minutes = Number(minutesInput.value);
         if (!minutes || minutes <= 0) { toast('Informe os minutos estudados.', { iconName: 'alert' }); return; }
-        store.mutate(s => { s.knowledgeItems[item.id].sessions.push({ date: todayISO(), minutes }); });
+        store.mutate(s => { s.knowledgeItems[item.id].sessions.push({ id: uid(), date: todayISO(), minutes }); });
         toast('Sessão registrada', { iconName: 'check' });
       } }, 'Registrar sessão'),
       h('span', { className: 'grow' }),
       h('button', { className: 'icon-btn-sm', 'aria-label': 'Excluir', onClick: async () => {
         const ok = await confirmDialog({ title: 'Excluir item', message: `Remover "${item.title}" e todo o histórico de sessões?`, confirmLabel: 'Excluir', danger: true });
-        if (ok) store.mutate(s => { delete s.knowledgeItems[item.id]; });
+        if (ok) store.mutate(s => { delete s.knowledgeItems[item.id]; markDeleted(s, 'knowledgeItems', item.id); });
       } }, icon('trash', { size: 14 }))
     ),
     item.sessions.length ? h('div', { className: 'knowledge-item-meta' },

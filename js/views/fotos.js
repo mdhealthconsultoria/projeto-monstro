@@ -62,6 +62,11 @@ export function renderFotos(viewEl, params, nav) {
 
     let changed = false;
     for (const found of results.filter(Boolean)) {
+      // Enquanto o download rodava, o usuário pode ter adicionado (ou
+      // removido) uma foto nesse mesmo dia/categoria — não duplica o que já
+      // está local agora, só porque na hora em que a busca começou estava
+      // faltando.
+      if (photoFor(found.day, found.category)) continue;
       const id = uid();
       const rec = { id, userId: store.userId, day: found.day, category: found.category, blob: found.blob, createdAt: todayISO() };
       await addPhoto(rec);

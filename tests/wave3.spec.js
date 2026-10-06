@@ -69,8 +69,12 @@ test.describe('Onda 3 — Sistema de Conhecimento', () => {
     // assíncronos via pushToCloud) — preencher o input antes disso terminar
     // de assentar arrisca um redraw resetar o valor digitado antes do clique.
     await page.waitForTimeout(600);
-    await card.locator('input[type="number"]').fill('45');
+    // O preenchimento do input precisa estar DENTRO do retry — um redraw
+    // que ainda esteja em andamento (da mudança de etapa acima) pode limpar
+    // o valor antes do clique, e se isso acontecer uma vez, nenhuma
+    // tentativa seguinte do toPass vai reencher o campo sozinha.
     await expect(async () => {
+      await card.locator('input[type="number"]').fill('45');
       await card.getByRole('button', { name: 'Registrar sessão' }).click({ force: true });
       await expect(card.getByText('1 sessão · 45 min registrados')).toBeVisible({ timeout: 3000 });
     }).toPass({ timeout: 25000, intervals: [300, 500, 1000] });
@@ -81,7 +85,11 @@ test.describe('Onda 3 — Sistema de Conhecimento', () => {
 
     // Limpeza: excluir o item
     await clickTo(page, page.getByText('Sistema de domínio'), page.getByRole('heading', { name: 'Conhecimento' }));
-    await page.locator('.knowledge-item').first().getByRole('button', { name: 'Excluir' }).click({ force: true });
+    await clickTo(
+      page,
+      page.locator('.knowledge-item').first().getByRole('button', { name: 'Excluir' }),
+      page.locator('#modal-root').getByRole('button', { name: 'Excluir' })
+    );
     await page.locator('#modal-root').getByRole('button', { name: 'Excluir' }).click();
     await expect(page.getByText('Nenhum item ainda')).toBeVisible();
 
